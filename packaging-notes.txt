@@ -1,0 +1,49 @@
+== ALL ==
+
+Bug: using mailpile-admin.py breaks usermap.txt
+ .. need chmod +x /var/lib/mailpile/apache/
+
+Bug: Mailpile modal JS is sometimes unsable.
+
+
+== wheezy / Debian 7 / May, 2013 ==============================================
+
+The following packages have unmet dependencies:
+ mailpile-core : Depends: python-appdirs but it is not installable
+                 Depends: python-cryptography but it is not installable
+                 Depends: python-dns but it is not going to be installed
+                 Depends: python-jinja2 but it is not going to be installed
+                 Depends: python-lxml but it is not going to be installed
+                 Depends: python-markupsafe but it is not going to be installed
+                 Depends: python-pbr but it is not installable
+                 Depends: python-pgpdump but it is not installable
+                 Depends: python-pil but it is not installable
+                 Depends: python:any (< 2.8) but it is not installable
+                 Depends: python:any (>= 2.7.5-5~) but it is not installable
+                 Depends: spambayes but it is not going to be installed
+                 Recommends: tor but it is not going to be installed
+
+
+== jessie / Debian 8 / April, 2015 ===========================================
+
+mailpile-core: Works!
+mailpile-server: Works!
+
+
+== xenial / Ubuntu 16.04 / April, 2016 =======================================
+
+mailpile-core: Works!
+mailpile-server: Works!
+
+
+== zesty / Ubuntu 17.04 / ? ==================================================
+
+(untested, should work)
+
+
+== artful / Ubuntu 17.10 / ? =================================================
+
+mailpile-core: Works!  Funny default wordlist though.
+mailpile-server: Works!
+
+
