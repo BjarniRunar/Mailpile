@@ -996,10 +996,14 @@ def SslWrapOnlyOnce(org_sslwrap, sock, *args, **kwargs):
     if not isinstance(sock, ssl.SSLSocket):
         ctx = Master.get_fd_context(sock.fileno())
         try:
-            if 'server_hostname' not in kwargs:
+            server_side = kwargs.get('server_side', False)
+            if 'server_hostname' not in kwargs and not server_side:
                 kwargs['server_hostname'] = ctx.address[0]
             sock = org_sslwrap(sock, *args, **kwargs)
-            ctx.encryption = _explain_encryption(sock)
+            if server_side:
+                ctx.encryption = None
+            else:
+                ctx.encryption = _explain_encryption(sock)
         except (socket.error, IOError, ssl.SSLError, ssl.CertificateError) as e:
             ctx.error = '%s' % e
             raise

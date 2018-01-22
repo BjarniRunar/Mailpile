@@ -457,6 +457,13 @@ KNOWN_TLS_HOSTS = {}
 MAX_TLS_CERTS = 5
 
 
+# By default we let OpenSSL choose ciphers for us, but request that it
+# only choose good, strong ones. The rationale here is that upstream
+# probably knows better what is good and what is bad than we do, and
+# this lets us automatically benefit from updates to the defaults.
+TLS_SERVER_CIPHERS = "HIGH:!MEDIUM:!LOW:!aNULL:!NULL:!SHA;"
+
+
 def tls_sock_cert_sha256(sock=None, cert=None):
     if cert is None:
         try:
@@ -542,6 +549,22 @@ def tls_configure(sock, context, args, kwargs):
             # argument, so get rid of it.
             del kwargs['server_hostname']
 
+    elif context and 'server_side' in kwargs:
+        if "certfile" in kwargs:
+            try:
+                context.set_ciphers(kwargs.get("ciphers") or TLS_SERVER_CIPHERS)
+            except ssl.SSLError:
+                print('INVALID CIPHER STRING: %s' % kwargs["ciphers"])
+                context.set_ciphers(TLS_SERVER_CIPHERS)
+            context.load_cert_chain(kwargs["certfile"],
+                                    keyfile=kwargs.get("keyfile"))
+        if "dh_params" in kwargs:
+            context.load_dh_params(kwargs["dh_params"])
+        for kw in ("certfile", "keyfile", "dh_params", "ciphers"):
+            if kw in kwargs:
+                del kwargs[kw]
+        kwargs['tofu'] = False
+
     if 'use_web_ca' in kwargs:
         del kwargs['use_web_ca']
 
@@ -571,9 +594,12 @@ def tls_cert_tofu(wrapped, accept_certs, sname):
             del KNOWN_TLS_HOSTS[skey].accept_certs[0]
 
 def tls_context_wrap_socket(org_wrap, context, sock, *args, **kwargs):
-    args, kwargs, sname, accept_certs = tls_configure(sock, context, args, kwargs)
+    args, kwargs, sname, accept_certs = tls_configure(sock, context,
+                                                      args, kwargs)
     tofu = kwargs.get('tofu', True)
-    if 'tofu' in kwargs: del kwargs['tofu']
+    if 'tofu' in kwargs:
+        del kwargs['tofu']
+
     wrapped = org_wrap(context, sock, *args, **kwargs)
     if tofu:
         tls_cert_tofu(wrapped, accept_certs, sname)

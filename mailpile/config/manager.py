@@ -1302,18 +1302,23 @@ class ConfigManager(ConfigDict):
                             port_in_use = False
                         if port_in_use:
                             raise socket.error(errno.EADDRINUSE)
-                    config.http_worker = HttpWorker(config.background, sspec)
+                    config.http_worker = HttpWorker(
+                        config.background, sspec,
+                        config.sys.https_pem_file,
+                        config.sys.https_ciphers)
                     config.http_worker.start()
                 except socket.error as e:
                     if e[0] == errno.EADDRINUSE:
                         session.ui.error(
                             _('Port %s:%s in use by another Mailpile or program'
                               ) % (sspec[0], sspec[1]))
+                    else:
+                        traceback.print_exc()
 
         # We may start the HTTPD without the loaded config...
         if not config.loaded_config:
             if daemons and not config.http_worker:
-                 start_httpd(httpd_spec)
+                start_httpd(httpd_spec)
             return
 
         # Start the other workers

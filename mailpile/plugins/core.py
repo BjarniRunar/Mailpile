@@ -446,9 +446,9 @@ class BrowseOrLaunch(Command):
     RAISES = (KeyboardInterrupt,)
 
     @classmethod
-    def Browse(cls, sspec):
-        http_url = ('http://%s:%s%s/' % sspec
-                    ).replace('//0.0.0.0:', '//localhost:')
+    def Browse(cls, proto, sspec):
+        http_url = proto + ('://%s:%s%s/' % sspec
+                            ).replace('//0.0.0.0:', '//localhost:')
         try:
             MakePopenUnsafe()
             webbrowser.open(http_url)
@@ -470,7 +470,7 @@ class BrowseOrLaunch(Command):
 
         try:
             socket.create_connection(sspec[:2])
-            self.Browse(sspec)
+            self.Browse('https' if config.sys.https_pem_file else 'http', sspec)
             os._exit(127)
         except IOError:
             pass
@@ -497,16 +497,17 @@ class RunWWW(Command):
         else:
             sspec = ospec
 
-        if self.session.config.http_worker:
-            self.session.config.http_worker.quit(join=True)
-            self.session.config.http_worker = None
+        if config.http_worker:
+            config.http_worker.quit(join=True)
+            config.http_worker = None
 
-        self.session.config.prepare_workers(self.session,
-                                            httpd_spec=tuple(sspec),
-                                            daemons=True)
+        config.prepare_workers(self.session,
+                               httpd_spec=tuple(sspec),
+                               daemons=True)
         if config.http_worker:
             sspec = config.http_worker.httpd.sspec
-            http_url = 'http://%s:%s%s/' % sspec
+            proto = 'https' if config.sys.https_pem_file else 'http'
+            http_url = proto + ('://%s:%s%s/' % sspec)
             if sspec != ospec:
                 (config.sys.http_host, config.sys.http_port,
                  config.sys.http_path) = sspec
@@ -2094,14 +2095,16 @@ class HelpSplash(Help):
 
     def command(self, interactive=True):
         from mailpile.auth import Authenticate
-        http_worker = self.session.config.http_worker
+        config = self.session.config
+        http_worker = config.http_worker
 
         in_browser = False
         if http_worker:
-            http_url = 'http://%s:%s%s/' % http_worker.httpd.sspec
+            proto = 'https' if config.sys.https_pem_file else 'http'
+            http_url = proto + ('://%s:%s%s/' % http_worker.httpd.sspec)
             if (mailpile.platforms.InDesktopEnvironment()
                     and self.session.config.prefs.open_in_browser):
-                if BrowseOrLaunch.Browse(http_worker.httpd.sspec):
+                if BrowseOrLaunch.Browse(proto, http_worker.httpd.sspec):
                     in_browser = True
                     time.sleep(2)
         else:
@@ -2112,7 +2115,7 @@ class HelpSplash(Help):
             'http_url': http_url,
             'in_browser': in_browser,
             'login_cmd': (Authenticate.SYNOPSIS[1]
-                          if not self.session.config.loaded_config else ''),
+                          if not config.loaded_config else ''),
             'interactive': interactive
         })
 

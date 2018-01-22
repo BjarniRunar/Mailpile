@@ -537,7 +537,8 @@ class HttpRequestHandler(SimpleXMLRPCRequestHandler):
 
 
 class HttpServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
-    def __init__(self, session, sspec, handler):
+    def __init__(self, session, sspec, handler,
+                 https_pem_filename, https_ciphers):
         SimpleXMLRPCServer.__init__(self, sspec[:2], handler)
         self.daemon_threads = True
         self.session = session
@@ -555,6 +556,14 @@ class HttpServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
         # We set a large sending buffer to avoid blocking, because the GIL and
         # scheduling interact badly when we have busy background jobs.
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 128 * 1024)
+        if https_pem_filename:
+            import ssl
+            self.socket = ssl.wrap_socket(self.socket,
+                keyfile=https_pem_filename,
+                certfile=https_pem_filename,
+                ciphers=https_ciphers,
+                server_side=True)
+
         self.server_url = 'http://UNKNOWN/'
         self.sspec = (sspec[0] or 'localhost',
                       self.socket.getsockname()[1],
@@ -617,12 +626,12 @@ class HttpServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
 
 
 class HttpWorker(threading.Thread):
-    def __init__(self, session, sspec):
+    def __init__(self, session, sspec, https_pem_filename, https_ciphers):
         threading.Thread.__init__(self)
-        self.httpd = HttpServer(session, sspec, HttpRequestHandler)
         self.daemon = True
         self.session = session
-
+        self.httpd = HttpServer(session, sspec, HttpRequestHandler,
+                                https_pem_filename, https_ciphers)
 
     def idle_tick(self, httpd):
         pass
