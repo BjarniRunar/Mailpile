@@ -2,8 +2,12 @@
 {
     "name": "remoteaccess",
     "author": "The Mailpile Team <team@mailpile.is>",
+    "description": "Allow remote access to your Mailpile. This plugin will allow you to enable TLS encrypted remote access over the local network, Tor or PageKite.",
+    "display": true,
+    "public": true,
+    "require_login": false,
     "code": {
-        "python": [],
+        "python": ["remoteaccess.py"],
         "javascript": [],
         "css": []
     },
@@ -30,22 +34,24 @@
         }]
     }},
 
+    # Worker threads
+    "threads": [
+        "RemoteAccessManager"
+    ],
+
     # These are our Python-related hooks
     "commands": [
     ],
 
     # Hook into the UI
     "user_interface": {
-        "activities": [
-            {
-                "context": ["/profiles/"],
-                "name": "remoteaccess",
-                "text": "Remote Access",
-                "icon": "force-graph",
-                "description": "Access your Mailpile over the Internet",
-                "aclass": "auto-modal",
-                "url": "/settings/remoteaccess/remote.html"
-            }
-        ]
+        "settings": [{
+            "name": "remoteaccess",
+            "context": ["/settings/"],
+            "icon": "force-graph",
+            "text": "Remote Access",
+            "description": "Access your Mailpile over the Internet",
+            "url": "/settings/remote.html"
+        }]
     }
 }

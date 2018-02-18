@@ -1,159 +1,261 @@
-{% extends "layouts/" + render_mode + ".html" %}
+{% if ui_from_profiles %}
+{% extends "layouts/" + render_mode + "-tall.html" %}
+{% else %}
+{% extends "logs/layout.html" %}
+{% endif %}
+{#
+
+Remote access things:
+
+   * Built-in Web Server
+      1. Port number
+      2. localhost or 0.0.0.0 (preserve custom addresses)
+         1. List of accepted host names?
+
+   * Enable remote access
+      1. The public web (using a PageKite relay)
+      2. Over Tor (hidden service)
+
+      3. SSL or no
+         1. Generate a self signed cert!
+         2. Allow user to specify/upload their own cert?
+
+
+   * PageKite
+      - Use pagekite.net, a whitelabel or a fixed relay?
+      - my-mailpile.is?
+
+   * Tor hidden services
+      - We can do this if we run our own Tor process, otherwise it's
+        not really configurable from within Mailpile
+
+THINGS TO CONSIDER:
+
+   - Is there any reason to not just to TLS all the time?
+   - For security reasons, we should probably limit which Host: headers
+     we accept. These settings affect that.
+   - Freedom requires PageKite.net not be the only relay option possible
+
+[ FUTURE MAGIC
+   * Accounts/credentials
+      1. Allow users to create (and revoke) per-device passwords?
+      ... Does this feature make sense until we have apps?
+      2. Enabling 2FA
+]
+
+#}
 {% block title %}{{_("Remote Access")}}{% endblock %}
+
 {% block content %}
-<div class="content-normal">
-<form id="form-remote-access" class="standard" method="POST"
-      style="position: relative; max-width: 60em;"
-      action="{{ U('/settings/remote.html') }}">
-  <h1><span class="icon-force-graph"></span> {{_("Remote Access")}}</h1>
+<div class="content-normal settings-page">
+ {%- set httpd_proto = 'https' if config.sys.https_pem_file else 'http' %}
+ {%- set httpd_url = httpd_proto + '://' + config.sys.http_host + ':' + config.sys.http_port|string + '/' + config.sys.http_path %}
+ <form method="POST" id="settings-form"
+       action="{{ U('/settings/set/') }}?ui_return={{ U('/settings/remote-access.html?ui_saved=True%26ui_httpd_url=', httpd_url) }}"
+       >{{ csrf_field|safe }}
 
-  <script>
-    var _rac = (function() {
-      return {
-        section: function(which, sub) {
-          $('.section').slideUp();
-          $('.section.'+which).slideDown();
-          _rac.subsection(sub || 'main');
-          return false;
-        },
-        subsection: function(which) {
-          $('.subsection').slideUp();
-          $('.subsection.'+which).slideDown();
-          return false;
-        }
-      };
-    })();
-  </script>
+  <h1 class="page-title-data mobile-hide">
+    <span class="page-title-icon"><span class="icon icon-force-graph"></span></span>
+    <span class="page-title-text">{{_("Remote Access")}}</span>
+  </h1>
 
-  <p class="message paragraph-important"
-     onclick="javascript:_rac.section('ra-remote-access');">
-    <span class="icon icon-force-graph"></span> {{_("Remote Access")}}
-  </p>
-  <div class="section ra-remote-access" style="position: relative;">
-    <table style="margin: 5px 0;">
-      <tr>
-        <th></th>
-        <th width="40%">method</th>
-        <th width="50%">address</th>
-        <th></th>
-      </tr>
-      <tr onclick="javascript:return _rac.section('ra-pagekite');">
-        <td><input type="checkbox"></td>
-        <td>PageKite Relay</td>
-        {%- if result.pagekite and result.pagekite.kitename %}
-        <td><a href="https://{{ result.pagekite.kitename }}{{ settings.http_path }}/"
-               class="pagekite kitename">{{ result.pagekite.kitename }}</a></td>
-        {%- else %}
-        <td><a href="#" class="pagekite kitename"><i>yourname</i>.my.mailpile.is</a></td>
-        {%- endif %}
-        <td><span class="icon icon-x"></span></td>
-      </tr>
-      <tr onclick="javascript:return _rac.section('tor');">
-        <td><input type="checkbox"></td>
-        <td>Tor Hidden Service</td>
-        <td><a><i>1234567890abcdef</i>.onion</a></td>
-        <td><span class="icon icon-x"></span></td>
-      </tr>
-      <tr onclick="javascript:return _rac.section('direct');">
-        <td><input type="checkbox"></td>
-        <td>Direct Access</td>
-        <td><a>10.0.0.1</a></td>
-        <td><span class="icon icon-x"></span></td>
-      </tr>
-    </table>
-    <p class="text-center" style="margin: 1em 0;">
-      <button onclick="javascript:return _rac.section('ra-pagekite', 'signup');"
-              class="button button-secondary">Sign up for <i>my.mailpile.is</i></button>
-    </p>
+  <div class="notices">
+  {% if ui_saved %}
     <p>
-      {{_("You can configure your Mailpile to allow access over the network, making it your own personal web-mail service.")}}
-      {{_("Different methods have different security properties, costs, pros and cons.")}}
-      {{_("Tick the boxes to explore and configure each one.")}}
+      <span class="icon icon-checkmark"></span>
+      {{_("Your settings have been saved.")}}
     </p>
+  {% endif %}
+  {% if ui_httpd_url and ui_httpd_url != httpd_url %}
+    <p>
+      <span class="icon icon-signature-unknown"></span>
+      {{_("Web server settings have changed!")}}
+    </p>
+  {% endif %}
   </div>
 
-  <div class="section ra-pagekite hide" style="position: relative;">
-    <p class="message paragraph-important"
-       onclick="javascript:_rac.section('ra-pagekite');">
-      <span class="icon icon-settings"></span> {{_("PageKite settings")}}
-    </p>
-    <p>
-      {{_("PageKite uses an in-the-cloud relay to make your local Mailpile accessible over the Internet.")}}
-      {{_("Traffic is encrypted end-to-end so the relay cannot see your mail.")}}
-    </p>
-    <div class="subsection main">
-      <p class="text-center">
-        <button onclick="javascript:return _rac.subsection('configure');"
-                class="buttin">I have PageKite</button> &nbsp;
-        <button onclick="javascript:return _rac.subsection('signup');"
-                class="button button-secondary">Sign up for <i>my.mailpile.is</i></button>
-      </p>
-      <p>
-        {{_("Techies can run their own relays, but there is also an affordable public relay provided by the people behind Mailpile.")}}
-        {{_("Using the Mailpile relay supports ongoing development.")}}
+  <a name="accounts"></a><div class="setting-group">
+    <h3>{{_("Remote Access")}}</h3>
+    <div class="explanation">
+      <p class="what">
+        <span class="icon icon-groups"></span>
+        {{_("")}}
       </p>
     </div>
-    <div class="subsection signup" style="position: relative;">
-      <div class="left" style="width: 10em; margin-right: 1em;">
-        <label>E-mail</label>
-        <select class="signup-email">
-          <option>foo@klaki.net</option>
-          <option>bar@klaki.net</option>
-        </select>
-      </div>
-      <div>
-        <label>Username</label>
-        <input type="text" class="signup-username" placeholder="username"
-               style="display: inline; width: 7em; text-align: right;"> <b>.my.mailpile.is</b>
-      </div>
-      <label>Payment plan</label>
-      <ul>
-        <li><input type="radio" name="plan" value="benefactor">
-            <span class="checkbox"><b>{{_("Benefactor")}}:</b> {{_("$20 USD/month for yourself while sponsoring 10 freebies")}}</span></li>
-        <li><input type="radio" name="plan" value="activist">
-            <span class="checkbox"><b>{{_("Activist")}}:</b> {{_("$6 USD/month for yourself while sponsoring 2 freebies")}}</span></li>
-        <li><input type="radio" name="plan" value="backer">
-            <span class="checkbox"><b>{{_("Backer")}}:</b> {{_("Free trial month, then $3 USD/month")}}</span></li>
-        <li><input type="radio" name="plan" value="freebie">
-            <span class="checkbox"><b>{{_("Freebie")}}:</b> {{_("Sponsored by community, limited availability")}}</span></li>
-      </ul>
-      <div>
-        <button onclick="javascript:return _rac.pagekite_signup();"
-                style="position: absolute; right: 0; bottom: 0;"
-                class="button button-secondary">Sign up!</button>
-        <p style="width: 28em;"><i>
-          {{_("Using the Mailpile relay supports ongoing development.")}}
-        </i></p>
-      </div>
-    </div>
-    <div class="subsection configure">
-      <p class="text-center" style="margin: 0; padding: 1em;">
-        <i>CONFIG: WORK IN PROGRESS...</i>
+    <div class="settings">
+      <p style="line-height: 1.8em;">
+        <label >
+          <span class="icon icon-star"></span>
+          {{_("Direct IP (LAN/WAN) access")}}:
+        </label>
+        {%- set pref, val = 'allinterfaces', False %}
+        {%- set sel = {(val and True or False): ' checked'} %}
+        <span class="float: right">
+          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
+          <span class="checkbox">{{_("Off")}}</span>
+          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
+          <span class="checkbox">{{_("On")}}</span>
+        </span>
+      </p>
+      <p style="line-height: 1.8em;">
+        <label >
+          <span class="icon icon-image"></span>
+          {{_("Standard web access")}}:
+        </label>
+        {%- set pref, val = 'pagekite', False %}
+        {%- set sel = {(val and True or False): ' checked'} %}
+        <span class="float: right">
+          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
+          <span class="checkbox">{{_("Off")}}</span>
+          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
+          <span class="checkbox">{{_("On")}}</span>
+        </span>
+      </p>
+      <p style="line-height: 1.8em; padding-left: 2em;">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAABa0lEQVRIib2Wsa3DMAxEz3Ch0iNokcBezMA34MUUeBGNkJJFYP4jlQT5rUF9FUH8UjAi744Ggs+kqk+kQzFD73zQLZ5twJpTAZ/S/QED4WxXWYGxppIxPPTsxbIeKkOVngzCyVj/OjHvnyyVA/rb04vMZp7TUWXO6VsHgawdSkuLTf7rxDHWlR+VW05a0zm160WzJwtl90fmxcT7F8ywwiqWrAWpTO1ywWzaMuuaP05vZJPCdWaG5jDcC9Yr/yWY0QtUkrD0op/+dWD8utjdOPBP3UjGu+le5WbapbMZHfGMuqIHqV0ZlDNv/yWaqZoI6PPWv7llyXW2V+rU7GBqnZh46ML2ytKWG+cE71U020DtYmTAVh9+26GhzE+25bZo26Tx7JXj/Dzb7gHimccdqF36o1C77/eNq8x3MhmYG+/+9WGjgmuUkardGEWlZ3aLuNaC2eYxe2jLple2BzOfuYx8QVILphnx7B/OL8sR+Wi7ROtDAAAAAElFTkSuQmCC"
+             style="width: 80px; margin-left: 10px" align=right>
+        <label>
+          {{_("Status")}}:
+          Active!
+        </label>
+        <br>
+        <label>
+          {{_("URL")}}:
+          <a href="">https://horse-dog-squirrel.my-mailpile.is/</a>
+        </label>
+        <br>
+        <label>
+          {{_("Relay Service Provider")}}:
+          <a target=_blank href="https://pagekite.net/company/">The Beanstalks Project ehf</a>
+        </label>
+        <br>
+        <span>
+          [ <a href="">edit</a> ]
+        </span>
+        <br clear="both"><br>
+      </p>
+      <p style="line-height: 1.8em;">
+        <label >
+          <span class="icon icon-tor"></span>
+          {{_("Anonymous web access over Tor")}}:
+        </label>
+        {%- set pref, val = 'tor', False %}
+        {%- set sel = {(val and True or False): ' checked'} %}
+        <span class="float: right">
+          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
+          <span class="checkbox">{{_("Off")}}</span>
+          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
+          <span class="checkbox">{{_("On")}}</span>
+        </span>
       </p>
     </div>
-  </div>
-
-  <p class="message paragraph-important"
-     onclick="javascript:_rac.section('ra-authentication');">
-    <span class="icon icon-lock-closed"></span> {{_("Passwords and Authentication")}}
-  </p>
-  <div class="section ra-authentication hide" style="position: relative;">
-    <p class="text-center" style="margin: 0; padding: 1em;">
-      <i>WORK IN PROGRESS...</i>
-    </p>
     <br clear="both">
   </div>
 
-  <div class="right">
-    <button class="button button-primary">
-      <span class="icon icon-checkmark"></span> {{_("Save")}}
-    </button>
+  <a name="httpd"></a><div class="setting-group">
+    <h3>{{_("Built-in Web Server")}}</h3>
+    <div class="explanation">
+      <p class="what">
+        <span class="icon icon-home"></span>
+        Current local URL: <b>{{ httpd_url }}</b>
+      </p>
+{%- if not config.sys.https_pem_file %}
+      <p class="risks">
+        <span class="icon icon-links"></span>
+        TLS encryption is recommended if you allow any form of remote access,
+        without it your passwords and e-mail may be stolen by eavesdroppers.
+      </p>
+{%- else %}
+      <p title="{{_('Key is loaded from:')}} {{ config.sys.https_pem_file }}"
+         class="what">
+        <span class="icon icon-links"></span>
+        {{_("You have enabled TLS encryption!")}}
+        {{_("Good job!")}}
+{%- if not config.web.developer_mode %}
+        <i style="font-size: 0.7em; position: relative; top: -8px;"
+          >[{{_("hover for details")}}]</i>
+{%- endif %}
+      </p>
+      <p class="risks">
+        <span class="icon icon-signature-unknown"></span>
+        {{_("Note that if you are using a self-signed certificate, your browser may show scary warnings and require you add a security exception the first time you access your Mailpile.")}}
+        {# FIXME: We should detect whether or not this is the case! #}
+      </p>
+{%- endif %}
+    </div>
+    <div class="settings">
+      <p style="line-height: 1.8em;">
+        <label>{{_("Server port")}}:</label>
+        <span class="float: right">
+          <input size=5 name="sys.http_port" value="{{ config.sys.http_port }}">
+        </span>
+      </p>
+{%- if config.web.developer_mode %}
+      <p style="line-height: 1.8em;">
+        <label>{{_("Path to PEM key and certificate")}}:</label>
+        <input name="sys.https_pem_file" type=text class="right"
+               value="{{ config.sys.https_pem_file }}">
+      </p>
+      <p style="line-height: 1.8em;">
+        <label>{{_("Custom TLS ciphers (OpenSSL format)")}}:</label>
+        <input name="sys.https_ciphers" type=text class="right"
+               value="{{ config.sys.https_ciphers }}">
+      </p>
+{%- elif config.sys.https_pem_file %}
+      <p style="line-height: 1.8em;">
+        <label >{{_("Require TLS encryption")}}:
+        </label>
+        {%- set pref, val = 'sys.https_pem_file', config.sys.https_pem_file %}
+        {%- set sel = {(val and True or False): ' checked'} %}
+        <span class="float: right">
+          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
+          <span class="checkbox">{{_("Off")}}</span>
+          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
+          <span class="checkbox">{{_("On")}}</span>
+        </span>
+      </p>
+{%- else %}
+      <p style="line-height: 1.8em;">
+      </p>
+{%- endif %}
+    </div>
+    <br clear="both">
   </div>
-  <p style="width: 28em;">
-    <b>WARNING:</b>
-    This is all EXPERIMENTAL and probably still INSECURE.
-    We're working on it!
-  </p>
 
-</form></div>
+{% if false %}
+  <a name="torhs"></a><div class="setting-group">
+    <h3>{{_("Tor Hidden Service")}}</h3>
+    <div class="explanation">
+      <p class="what">
+        <span class="icon icon-tor"></span>
+        {{_("Exposing Mailpile as a Tor hidden service will allow secure remote access to your Mailpile using the Tor Browser Bundle or another Tor-enabled browser.")}}
+      </p>
+      <p class="risks">
+        <span class="icon icon-signature-unknown"></span>
+        {{_("The current generation of Tor hidden services allow attackers to enumerate hidden services and thus discover your Mailpile.")}}
+        <a target=_blank href="https://tor.stackexchange.com/questions/6741/can-a-hidden-service-directory-enumerate-hidden-services">{{_("read more")}}</a>
+      </p>
+      <p class="risks">
+        <span class="icon icon-robot"></span>
+        Note: <i>This is a developer-only feature, until we start shipping
+        our own custom Tor or tweak our packages in such a way that
+        Mailpile can reliably configure the Tor hidden service using
+        <a target=_blank href="https://stem.torproject.org/">stem</a>.</i>
+      </p>
+    </div>
+    <div class="settings">
+    </div>
+    <br clear="both">
+  </div>
+{% endif %}
+
+  <span style="position: fixed; bottom: 15px; border: 5px solid #eee;">
+    <button class="button-primary" type="submit">{{_("Save Settings")}}</button>
+  </span>
+ </form>
+</div>
+<script language="javascript">
+  $('#settings-form').on('submit', function() {
+  });
+</script>
 {% endblock %}

@@ -184,7 +184,7 @@ class GuiOMaticConnection(threading.Thread):
                     'Loaded metadata for {num} messages so far, please wait.'
                     ).format(num=len(self.config.index_loading.INDEX)))
             return
-        if self._state != self._state_logged_in:
+        if (self._state != self._state_logged_in) or not self.config.index:
             return
         if not self._notified:
             summarize = True

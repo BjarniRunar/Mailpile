@@ -1320,6 +1320,7 @@ class ConfigManager(ConfigDict):
             if daemons and not config.http_worker:
                 start_httpd(httpd_spec)
             return
+        # FIXME: We should also start the remote access workers!
 
         # Start the other workers
         if daemons:

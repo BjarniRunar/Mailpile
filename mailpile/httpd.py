@@ -626,21 +626,36 @@ class HttpServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
 
 
 class HttpWorker(threading.Thread):
-    def __init__(self, session, sspec, https_pem_filename, https_ciphers):
+    def __init__(self, session,
+                 sspec=None, https_pem_filename=None, https_ciphers=None):
         threading.Thread.__init__(self)
         self.daemon = True
         self.session = session
-        self.httpd = HttpServer(session, sspec, HttpRequestHandler,
-                                https_pem_filename, https_ciphers)
+        self.handler = HttpRequestHandler
+        if sspec is None:
+            self.httpd = None
+        else:
+            self._create_httpd(sspec, https_pem_filename, https_ciphers)
+
+    def _create_httpd(self, sspec, https_pem_filename, https_ciphers):
+        self.httpd = HttpServer(self.session,
+            sspec, self.handler, https_pem_filename, https_ciphers)
 
     def idle_tick(self, httpd):
         pass
 
+    def _keep_running(self):
+        return (self.httpd is not None)
+
     def run(self):
-        while self.httpd is not None:
+        while self._keep_running():
             try:
-                self.httpd.serve_forever(
-                    poll_interval=1.0, tick_func=self.idle_tick)
+                if self.httpd:
+                    self.httpd.serve_forever(
+                        poll_interval=1.0, tick_func=self.idle_tick)
+                else:
+                    self.idle_tick(None)
+                    time.sleep(1.0)
             except KeyboardInterrupt:
                 return
             except socket.error:

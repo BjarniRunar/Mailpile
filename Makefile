@@ -95,6 +95,7 @@ pytests:
 	@echo -n 'crypto/autocrypt ' && python2.7 mailpile/crypto/autocrypt.py
 	@echo -n 'plug...autocrypt ' && python2.7 mailpile/plugins/crypto_autocrypt.py
 	@echo -n 'crypto/mime      ' && python2.7 mailpile/crypto/mime.py
+	@echo -n 'crypto/tls       ' && python2.7 mailpile/crypto/tls.py
 	@echo -n 'index.base       ' && python2.7 mailpile/index/base.py
 	@echo -n 'index.msginfo    ' && python2.7 mailpile/index/msginfo.py
 	@echo -n 'index.mailboxes  ' && python2.7 mailpile/index/mailboxes.py

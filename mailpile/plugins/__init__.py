@@ -83,7 +83,7 @@ class PluginManager(object):
     ]
     # Plugins we want, if they are discovered
     WANTED = [
-        'autoajax', 'print', 'hints'
+        'autoajax', 'print', 'hints', 'remoteaccess'
     ]
     # Plugins that have been renamed from past releases
     RENAMED = {
