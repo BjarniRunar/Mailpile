@@ -27,6 +27,19 @@ class Hacks(Command):
         return self._success('OK', Help(self.session, arg=['hacks']).run())
 
 
+class MemUsage(Hacks):
+    """Print a report about internal memory usage"""
+    SYNOPSIS = (None, 'hacks/memusage', None, None)
+    LOG_PROGRESS = True
+
+    def command(self):
+        from pympler import asizeof
+        return self._success('OK', {
+            'session': asizeof.asizeof(self.session),
+            'config': asizeof.asizeof(self.session.config),
+            'index': asizeof.asizeof(self.session.config.index)})
+
+
 class FixIndex(Hacks):
     """Do various things to try and fix broken indexes"""
     SYNOPSIS = (None, 'hacks/fixindex', None, None)

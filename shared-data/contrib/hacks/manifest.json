@@ -25,6 +25,10 @@
             "name": "hacks"
         },
         {
+            "class": "MemUsage",
+            "name": "hacks/memusage"
+        },
+        {
             "class": "FixIndex",
             "name": "hacks/fixindex"
         },
