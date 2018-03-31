@@ -33,6 +33,7 @@ _plugins.register_config_section('tags', ["Tags", {
         'profile', 'mailbox', 'never-delete',         # Accounts, Mailboxes
         'drafts', 'blank', 'outbox', 'sent',          # composing and sending
         'replied', 'fwded', 'tagged', 'read', 'ham',  # behavior tracking tags
+        'dsn_error', 'dsn_warning', 'dsn_misc',       # Delivery Status Notif.
         'trash', 'spam'                               # junk mail tags
     ], 'tag'],
     'flag_hides': ['Hide tagged messages from searches?', 'bool', False],
@@ -79,6 +80,12 @@ _plugins.register_config_section('filters', ["Filters", {
 # else if they so choose.
 INTERNAL_TAGS = {
     'never-delete': {'name': 'mp_never-delete',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'dsn_error': {'name': 'mp_dsn-error',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'dsn_warning': {'name': 'mp_dsn-warning',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'dsn_misc': {'name': 'mp_dsn-misc',
                 'label': False, 'display': 'invisible', 'flag_msg_only': True},
     'read':    {'name': 'mp_read',
                 'label': False, 'display': 'invisible', 'flag_msg_only': True},

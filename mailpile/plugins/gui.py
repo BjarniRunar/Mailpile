@@ -255,7 +255,7 @@ class GuiOMaticConnection(threading.Thread):
                 loop_count += 1
                 self._select_sleep(1)  # FIXME: Lengthen this when possible
                 self.change_state()
-                if loop_count % 5 == 0:
+                if (loop_count < 300) or (loop_count % 5 == 0):
                     # FIXME: This involves a fair number of set operations,
                     #        should only do this after new mail has arrived.
                     self.new_mail_notifications()
