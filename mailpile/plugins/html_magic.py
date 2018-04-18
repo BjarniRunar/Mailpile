@@ -4,6 +4,7 @@
 # It also takes care of safely downloading random stuff from the Internet,
 # using the appropriate proxying policies.
 #
+import re
 from urllib2 import urlopen, HTTPError
 
 import mailpile.security as security
@@ -112,6 +113,82 @@ class JsApi(RenderPage):
         return self._success(_('Generated Javascript API'), result=res)
 
 
+class CssFilter(JsApi):
+    """Output CSS, filtered in some way."""
+    SYNOPSIS = (None, None, 'cssfilter', None)
+    RAISES = (SuppressHtmlOutput,)
+    HTTP_QUERY_VARS = {
+        'ts': 'Cache busting timestamp',
+        'css': 'Which CSS?',
+        'invert': 'Invert CSS colors?',
+        'bgimg': 'URL of magic background image'}
+
+    RE_COLORS = re.compile(
+        '(rgba\([^\)]+\)|#[\da-fA-F]{6,6}|#[\da-fA-F]{3,3})',
+        flags=re.DOTALL)
+
+    RE_URLS = re.compile('url\(([^\)]+)\)', flags=re.DOTALL)
+
+    def filter_colors(self, data, ff):
+        def fixup(m):
+            color = m.group(0)
+
+            if len(color) == 4:
+                r = int(color[1]+color[1], 16)
+                g = int(color[2]+color[2], 16)
+                b = int(color[3]+color[3], 16)
+                a = 1.0
+            elif len(color) == 7:
+                r = int(color[1:3], 16)
+                g = int(color[3:5], 16)
+                b = int(color[5:7], 16)
+                a = 1.0
+            else:
+                return color
+
+            r, g, b, a = ff(r, g, b, a)
+            if a < 1:
+                return 'rgba(%d, %d, %d, %.2f)' % (r, g, b, a)
+            else:
+                return '#%2.2x%2.2x%2.2x' % (r, g, b)
+
+        return re.sub(self.RE_COLORS, fixup, data)
+
+    def filter_urls(self, data):
+        def fixup(m):
+            url = m.group(1)
+            if url[1:4] == '../':
+                url = '%s/static/%s' % (url[:1], url[4:])
+            return 'url(%s)' % url
+        return re.sub(self.RE_URLS, fixup, data)
+
+    def command(self):
+        session, config = self.session, self.session.config
+
+        which = self.data.get('css', ['default'])[0]
+        if '.' in which or '/' in which:
+            raise AccessError()
+
+        path = os.path.join('css', which + '.css')
+        fpath, fd, mt = config.open_file('html_theme', path)
+        with fd:
+            data = fd.read()
+
+        if self.data.get('invert', [0])[0]:
+            def ff(r, g, b, a):
+                return (255-r, 255-g, 255-b, a)
+            data = self.filter_colors(data, ff)
+
+        data = self.filter_urls(data)
+
+        filename, fd = session.ui.open_for_data(attributes={
+            'mimetype': 'text/css',
+            'disposition': 'inline',
+            'length': len(data)})
+        fd.write(data)
+        fd.close()
+
+
 class ProgressiveWebApp(RenderPage):
     """Output PWA Manifest"""
     SYNOPSIS = (None, None, 'jsapi/pwa', None)
@@ -178,4 +255,5 @@ class HttpProxyGetRequest(Command):
         raise SuppressHtmlOutput()
 
 
-_plugins.register_commands(JsApi, ProgressiveWebApp, HttpProxyGetRequest)
+_plugins.register_commands(JsApi, CssFilter, ProgressiveWebApp,
+                           HttpProxyGetRequest)
