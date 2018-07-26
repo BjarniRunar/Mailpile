@@ -1,16 +1,13 @@
 # Welcome to Mailpile! #
 
-[![Build Status](https://img.shields.io/travis/mailpile/Mailpile/master.svg)](https://travis-ci.org/mailpile/Mailpile)
-
-
 ## Introduction ##
 
 Mailpile (<https://www.mailpile.is/>) is a modern, fast web-mail client
 with user-friendly encryption and privacy features. The development of
 Mailpile is funded by
 [a large community of backers](https://www.mailpile.is/#community)
-and all code related to the project is and will be released under an OSI
-approved Free Software license.
+and all code related to the project is and will be released under the
+AGPLv3 (an OSI approved Free Software license).
 
 Mailpile places great emphasis on providing a clean, elegant user
 interface and pleasant user experience. In particular, Mailpile aims to
@@ -29,12 +26,34 @@ allows e-mail to be organized using tags (similar to GMail's labels) and
 the application can be configured to automatically tag incoming mail
 either based on static rules or bayesian classifiers.
 
-**Note:** We are currently working towards a 1.0 release candidate. Until
-it is ready, Mailpile is really only suitable for developers who can help
-us find and fix the last few bugs. Our beta releases are obsolete and
-**should not be used**, in part for security reasons! For more details
-[follow @MailpileTeam on Twitter](https://twitter.com/MailpileTeam)
-or [read our blog](https://www.mailpile.is/blog/).
+**A related FAQ:** Note that Mailpile is *not* a mail server. It is also
+not designed for use as a large-scale hosted web-mail solution. Think of
+it as an alternative to Thunderbird, not a replacement for Squirrelmail
+or Zimbra.
+
+
+### Project Status
+
+We are gradually working towards a 1.0 release.
+
+The software works well and core features are considered stable on Linux
+and other Unix-like operating systems (including Mac OS); it works but
+is less well tested on Windows.
+
+Installers for Mac OS and Windows are under development, packages exist
+for Debian derived distributions.
+
+Further details:
+
+   * [The project blog](https://www.mailpile.is/blog/)
+   * [@MailpileTeam on Twitter](https://twitter.com/MailpileTeam)
+   * [Our download page](https://www.mailpile.is/download/)
+
+
+**A related FAQ:** Note that we generally do not have answers to
+questions about "when" a feature or package will become available. So
+there's little point asking - but by all means follow us on Twitter or
+follow our blog and we'll let you know when there is news!
 
 
 ### Trying Mailpile
@@ -44,15 +63,8 @@ website](https://www.mailpile.is/demos/). If you are curious about what
 Mailpile looks like, please feel free to check it out.
 
 
-### Installing Mailpile
+## Contributing
 
-Note that Mailpile is still in development and is not suitable for
-production or end-user use. However, developers and early adopters are
-encouraged to give it a try and even help us find bugs, fix them and
-develop new features.
-
-Please see our [download page](https://www.mailpile.is/download/) or read
-[the Getting Started guide on our wiki](https://github.com/pagekite/Mailpile/wiki/Getting-started).
 
 
 ## Credits and License ##

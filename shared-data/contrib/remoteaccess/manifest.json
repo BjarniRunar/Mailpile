@@ -7,7 +7,7 @@
     "public": true,
     "require_login": false,
     "code": {
-        "python": ["remoteaccess.py"],
+        "python": ["acme_tiny.py", "remoteaccess.py"],
         "javascript": [],
         "css": []
     },
@@ -24,12 +24,28 @@
             "pagekite":      ["PageKite settings", false, {
                 "enabled":   ["Enable PageKite remote access", "bool", false],
                 "kitename":  ["Name of public DNS", "str", ""],
+                "services":  ["Exposed services", "str", "https"],
+                "pem_file":  ["TLS key/cert PEM file", "file", ""],
                 "account":   ["Account login", "str", ""],
-                "password":  ["Kite secret", "str", ""],
+                "secret":    ["Kite secret", "str", ""],
                 "frontends": ["--frontends", "str", ""],
                 "dyndns":    ["--dyndns", "str", ""],
                 "xmlrpc":    ["XML-RPC server for signups", "url",
                               "https://pagekite.net/xmlrpc/"]
+            }],
+            "tor":      ["Tor Hidden Service settings", false, {
+                "enabled":   ["Enable Tor Hidden Service", "bool", false],
+                "onion":     ["Name of Onion", "str", ""],
+                "services":  ["Exposed services", "str", "https"],
+                "pem_file":  ["TLS key/cert PEM file", "file", ""],
+                "key_type":  ["Private key type", "str", ""],
+                "secret":    ["Private key data", "str", ""]
+            }],
+            "lan":      ["Local Area Network settings", false, {
+                "enabled":   ["Enable access from LAN", "bool", false],
+                "hostname":  ["Name on LAN", "str", ""],
+                "services":  ["Exposed services", "str", "https"],
+                "pem_file":  ["TLS key/cert PEM file", "file", ""]
             }]
         }]
     }},

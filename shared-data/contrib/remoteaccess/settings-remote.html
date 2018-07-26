@@ -5,6 +5,20 @@
 {% endif %}
 {#
 
+Toggling a remote access method to on will:
+
+   1) Display current status of that method
+   2) If unconfigured, pop a modal for configuring
+   3) If configured, there's a button to pop the modal
+
+Remote access always requires a TLS certificate; users who want other
+options need to use the CLI. For LAN and Tor, we create ask no questions,
+just generate a self-signed cert.
+
+For PageKite exposure, we attempt a letsencrypt ACME setup.
+
+-------------------------------------------------------------------------
+
 Remote access things:
 
    * Built-in Web Server
@@ -75,28 +89,14 @@ THINGS TO CONSIDER:
   </div>
 
   <a name="accounts"></a><div class="setting-group">
-    <h3>{{_("Remote Access")}}</h3>
+    <h3>{{_("Addresses and Networks")}}</h3>
     <div class="explanation">
       <p class="what">
         <span class="icon icon-groups"></span>
-        {{_("")}}
+        {{_("...")}}
       </p>
     </div>
     <div class="settings">
-      <p style="line-height: 1.8em;">
-        <label >
-          <span class="icon icon-star"></span>
-          {{_("Direct IP (LAN/WAN) access")}}:
-        </label>
-        {%- set pref, val = 'allinterfaces', False %}
-        {%- set sel = {(val and True or False): ' checked'} %}
-        <span class="float: right">
-          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
-          <span class="checkbox">{{_("Off")}}</span>
-          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
-          <span class="checkbox">{{_("On")}}</span>
-        </span>
-      </p>
       <p style="line-height: 1.8em;">
         <label >
           <span class="icon icon-image"></span>
@@ -148,64 +148,12 @@ THINGS TO CONSIDER:
           <span class="checkbox">{{_("On")}}</span>
         </span>
       </p>
-    </div>
-    <br clear="both">
-  </div>
-
-  <a name="httpd"></a><div class="setting-group">
-    <h3>{{_("Built-in Web Server")}}</h3>
-    <div class="explanation">
-      <p class="what">
-        <span class="icon icon-home"></span>
-        Current local URL: <b>{{ httpd_url }}</b>
-      </p>
-{%- if not config.sys.https_pem_file %}
-      <p class="risks">
-        <span class="icon icon-links"></span>
-        TLS encryption is recommended if you allow any form of remote access,
-        without it your passwords and e-mail may be stolen by eavesdroppers.
-      </p>
-{%- else %}
-      <p title="{{_('Key is loaded from:')}} {{ config.sys.https_pem_file }}"
-         class="what">
-        <span class="icon icon-links"></span>
-        {{_("You have enabled TLS encryption!")}}
-        {{_("Good job!")}}
-{%- if not config.web.developer_mode %}
-        <i style="font-size: 0.7em; position: relative; top: -8px;"
-          >[{{_("hover for details")}}]</i>
-{%- endif %}
-      </p>
-      <p class="risks">
-        <span class="icon icon-signature-unknown"></span>
-        {{_("Note that if you are using a self-signed certificate, your browser may show scary warnings and require you add a security exception the first time you access your Mailpile.")}}
-        {# FIXME: We should detect whether or not this is the case! #}
-      </p>
-{%- endif %}
-    </div>
-    <div class="settings">
       <p style="line-height: 1.8em;">
-        <label>{{_("Server port")}}:</label>
-        <span class="float: right">
-          <input size=5 name="sys.http_port" value="{{ config.sys.http_port }}">
-        </span>
-      </p>
-{%- if config.web.developer_mode %}
-      <p style="line-height: 1.8em;">
-        <label>{{_("Path to PEM key and certificate")}}:</label>
-        <input name="sys.https_pem_file" type=text class="right"
-               value="{{ config.sys.https_pem_file }}">
-      </p>
-      <p style="line-height: 1.8em;">
-        <label>{{_("Custom TLS ciphers (OpenSSL format)")}}:</label>
-        <input name="sys.https_ciphers" type=text class="right"
-               value="{{ config.sys.https_ciphers }}">
-      </p>
-{%- elif config.sys.https_pem_file %}
-      <p style="line-height: 1.8em;">
-        <label >{{_("Require TLS encryption")}}:
+        <label >
+          <span class="icon icon-star"></span>
+          {{_("Direct IP (LAN/WAN) access")}}:
         </label>
-        {%- set pref, val = 'sys.https_pem_file', config.sys.https_pem_file %}
+        {%- set pref, val = 'allinterfaces', False %}
         {%- set sel = {(val and True or False): ' checked'} %}
         <span class="float: right">
           <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
@@ -214,40 +162,9 @@ THINGS TO CONSIDER:
           <span class="checkbox">{{_("On")}}</span>
         </span>
       </p>
-{%- else %}
-      <p style="line-height: 1.8em;">
-      </p>
-{%- endif %}
     </div>
     <br clear="both">
   </div>
-
-{% if false %}
-  <a name="torhs"></a><div class="setting-group">
-    <h3>{{_("Tor Hidden Service")}}</h3>
-    <div class="explanation">
-      <p class="what">
-        <span class="icon icon-tor"></span>
-        {{_("Exposing Mailpile as a Tor hidden service will allow secure remote access to your Mailpile using the Tor Browser Bundle or another Tor-enabled browser.")}}
-      </p>
-      <p class="risks">
-        <span class="icon icon-signature-unknown"></span>
-        {{_("The current generation of Tor hidden services allow attackers to enumerate hidden services and thus discover your Mailpile.")}}
-        <a target=_blank href="https://tor.stackexchange.com/questions/6741/can-a-hidden-service-directory-enumerate-hidden-services">{{_("read more")}}</a>
-      </p>
-      <p class="risks">
-        <span class="icon icon-robot"></span>
-        Note: <i>This is a developer-only feature, until we start shipping
-        our own custom Tor or tweak our packages in such a way that
-        Mailpile can reliably configure the Tor hidden service using
-        <a target=_blank href="https://stem.torproject.org/">stem</a>.</i>
-      </p>
-    </div>
-    <div class="settings">
-    </div>
-    <br clear="both">
-  </div>
-{% endif %}
 
   <span style="position: fixed; bottom: 15px; border: 5px solid #eee;">
     <button class="button-primary" type="submit">{{_("Save Settings")}}</button>

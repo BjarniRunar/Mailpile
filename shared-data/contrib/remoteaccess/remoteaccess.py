@@ -22,6 +22,8 @@ from mailpile.i18n import gettext as _
 from mailpile.i18n import ngettext as _n
 from mailpile.util import *
 
+import mailpile.plugins.remoteaccess.acme_tiny as acme_tiny
+
 try:
     import pagekite
     import pagekite.pk as pk
