@@ -3,61 +3,6 @@
 {% else %}
 {% extends "logs/layout.html" %}
 {% endif %}
-{#
-
-Toggling a remote access method to on will:
-
-   1) Display current status of that method
-   2) If unconfigured, pop a modal for configuring
-   3) If configured, there's a button to pop the modal
-
-Remote access always requires a TLS certificate; users who want other
-options need to use the CLI. For LAN and Tor, we create ask no questions,
-just generate a self-signed cert.
-
-For PageKite exposure, we attempt a letsencrypt ACME setup.
-
--------------------------------------------------------------------------
-
-Remote access things:
-
-   * Built-in Web Server
-      1. Port number
-      2. localhost or 0.0.0.0 (preserve custom addresses)
-         1. List of accepted host names?
-
-   * Enable remote access
-      1. The public web (using a PageKite relay)
-      2. Over Tor (hidden service)
-
-      3. SSL or no
-         1. Generate a self signed cert!
-         2. Allow user to specify/upload their own cert?
-
-
-   * PageKite
-      - Use pagekite.net, a whitelabel or a fixed relay?
-      - my-mailpile.is?
-
-   * Tor hidden services
-      - We can do this if we run our own Tor process, otherwise it's
-        not really configurable from within Mailpile
-
-THINGS TO CONSIDER:
-
-   - Is there any reason to not just to TLS all the time?
-   - For security reasons, we should probably limit which Host: headers
-     we accept. These settings affect that.
-   - Freedom requires PageKite.net not be the only relay option possible
-
-[ FUTURE MAGIC
-   * Accounts/credentials
-      1. Allow users to create (and revoke) per-device passwords?
-      ... Does this feature make sense until we have apps?
-      2. Enabling 2FA
-]
-
-#}
 {% block title %}{{_("Remote Access")}}{% endblock %}
 
 {% block content %}
@@ -73,106 +18,290 @@ THINGS TO CONSIDER:
     <span class="page-title-text">{{_("Remote Access")}}</span>
   </h1>
 
-  <div class="notices">
-  {% if ui_saved %}
-    <p>
-      <span class="icon icon-checkmark"></span>
-      {{_("Your settings have been saved.")}}
-    </p>
-  {% endif %}
-  {% if ui_httpd_url and ui_httpd_url != httpd_url %}
-    <p>
-      <span class="icon icon-signature-unknown"></span>
-      {{_("Web server settings have changed!")}}
-    </p>
-  {% endif %}
-  </div>
-
-  <a name="accounts"></a><div class="setting-group">
-    <h3>{{_("Addresses and Networks")}}</h3>
-    <div class="explanation">
+{#
+    <div class="explanation hide">
       <p class="what">
-        <span class="icon icon-groups"></span>
-        {{_("...")}}
+        <span class="icon icon-lightbulb"></span>
+        {{_("Mailpile supports multiple styles of remote access, each of which will allow you to read and write e-mail from other computers, tablets or mobile phones.")}}
+      </p>
+      <p class="risks">
+        <span class="icon icon-signature-unknown"></span>
+        {{_("Enabling remote access increases the risk that third parties (criminals or snoops) might access your mail.")}}
+        {{_("You can manage this risk by choosing a strong password or by temporarily disabling remote access or switching off Mailpile itself.")}}
       </p>
     </div>
-    <div class="settings">
-      <p style="line-height: 1.8em;">
-        <label >
-          <span class="icon icon-image"></span>
-          {{_("Standard web access")}}:
-        </label>
+#}
+
+  <a name="pagekite"></a><div class="setting-group">
+    <h3>
+      {{_("PageKite Relay")}}
+      <div id="pagekite-toggle"
+           style="float: right; font-size: 0.6em; margin: 0; padding: 0;">
         {%- set pref, val = 'pagekite', False %}
         {%- set sel = {(val and True or False): ' checked'} %}
-        <span class="float: right">
-          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
-          <span class="checkbox">{{_("Off")}}</span>
-          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
-          <span class="checkbox">{{_("On")}}</span>
-        </span>
+        <input type=radio name="{{ pref }}" class="toggle-off"
+               value="None"{{ sel.get(False, '') }}>
+        <span class="checkbox">{{_("Off")}}</span>
+        <input type=radio name="{{ pref }}" class="toggle-on"
+               value="{{ val }}"{{  sel.get(True,  '') }}>
+        <span class="checkbox">{{_("On")}}</span>
+      </div>
+    </h3>
+    <div class="explanation">
+      <p class="what">
+        <span class="icon icon-image"></span>
+        {{_("PageKite will let you access your Mailpile from any web browser or mobile device.")}}
       </p>
-      <p style="line-height: 1.8em; padding-left: 2em;">
+      <p class="risks">
+        <span class="icon icon-eye"></span>
+        {{_("PageKite relies on access to a cloud-based relay.")}}
+        {{_("PageKite and <a {args} href='{pk_url}'>pagekite.net</a> were created by one of Mailpile's authors, to provide relay service to the general public."
+            ).format(args='target=_blank', pk_url='https://pagekite.net/')}}
+        {{_("Technical people can also <a {args} href='{diy_url}'>run their own relays</a>."
+            ).format(args='target=_blank', diy_url='https://pagekite.net/')}}
+      </p>
+    </div>
+    <div class="settings" style="line-height: 1.8em;">
+      <div id="pagekite-details" style="display: block; width: 100%;" class="hide">
+        <ul class="activation-steps" style="display: inline-block; margin: 0 1em 0 0.5em">
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Reserve your public domain name")}}</span>
+            <span class="up hide">{{_("Your URL")}}: <a id="pagekite-url"></a></span>
+          </li>
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Connect to a PageKite relay")}}</span>
+            <span class="up hide">{{_("Connected to PageKite relay")}}: <tt id="pagekite-relay"></tt></span>
+          </li>
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Update public DNS records")}}</span>
+            <span class="up hide">{{_("DNS records are up to date")}}</span>
+          </li>
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Create a TLS encryption key and certificate")}}</span>
+            <span class="up hide">{{_("Connection secured by TLS and Let's Encrypt")}}</span>
+          </li>
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Expose Mailpile to the web")}}</span>
+            <span class="up pagekite-status hide">{{_("Remote Access over the web is enabled")}}</span>
+          </li>
+        </ul>
         <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAABa0lEQVRIib2Wsa3DMAxEz3Ch0iNokcBezMA34MUUeBGNkJJFYP4jlQT5rUF9FUH8UjAi744Ggs+kqk+kQzFD73zQLZ5twJpTAZ/S/QED4WxXWYGxppIxPPTsxbIeKkOVngzCyVj/OjHvnyyVA/rb04vMZp7TUWXO6VsHgawdSkuLTf7rxDHWlR+VW05a0zm160WzJwtl90fmxcT7F8ywwiqWrAWpTO1ywWzaMuuaP05vZJPCdWaG5jDcC9Yr/yWY0QtUkrD0op/+dWD8utjdOPBP3UjGu+le5WbapbMZHfGMuqIHqV0ZlDNv/yWaqZoI6PPWv7llyXW2V+rU7GBqnZh46ML2ytKWG+cE71U020DtYmTAVh9+26GhzE+25bZo26Tx7JXj/Dzb7gHimccdqF36o1C77/eNq8x3MhmYG+/+9WGjgmuUkardGEWlZ3aLuNaC2eYxe2jLple2BzOfuYx8QVILphnx7B/OL8sR+Wi7ROtDAAAAAElFTkSuQmCC"
-             style="width: 80px; margin-left: 10px" align=right>
-        <label>
-          {{_("Status")}}:
-          Active!
-        </label>
-        <br>
-        <label>
-          {{_("URL")}}:
-          <a href="">https://horse-dog-squirrel.my-mailpile.is/</a>
-        </label>
-        <br>
-        <label>
-          {{_("Relay Service Provider")}}:
-          <a target=_blank href="https://pagekite.net/company/">The Beanstalks Project ehf</a>
-        </label>
-        <br>
-        <span>
-          [ <a href="">edit</a> ]
+             id="pagekite-qrcode" class="hide"
+             style="width: 6em; float: left; margin: 0.5em 5px;">
+        <br clear="both"><span class="right" style="margin: 0 2em">
+          [ <a id='pagekite-edit' href="#">edit</a> ]
         </span>
-        <br clear="both"><br>
-      </p>
-      <p style="line-height: 1.8em;">
-        <label >
-          <span class="icon icon-tor"></span>
-          {{_("Anonymous web access over Tor")}}:
-        </label>
-        {%- set pref, val = 'tor', False %}
-        {%- set sel = {(val and True or False): ' checked'} %}
-        <span class="float: right">
-          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
-          <span class="checkbox">{{_("Off")}}</span>
-          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
-          <span class="checkbox">{{_("On")}}</span>
-        </span>
-      </p>
-      <p style="line-height: 1.8em;">
-        <label >
-          <span class="icon icon-star"></span>
-          {{_("Direct IP (LAN/WAN) access")}}:
-        </label>
-        {%- set pref, val = 'allinterfaces', False %}
-        {%- set sel = {(val and True or False): ' checked'} %}
-        <span class="float: right">
-          <input type=radio name="{{ pref }}" value="None"{{ sel.get(False, '') }}>
-          <span class="checkbox">{{_("Off")}}</span>
-          <input type=radio name="{{ pref }}" value="{{ val }}"{{  sel.get(True,  '') }}>
-          <span class="checkbox">{{_("On")}}</span>
-        </span>
-      </p>
+      </div>
     </div>
     <br clear="both">
   </div>
 
-  <span style="position: fixed; bottom: 15px; border: 5px solid #eee;">
-    <button class="button-primary" type="submit">{{_("Save Settings")}}</button>
-  </span>
+  <a name="tor"></a><div class="setting-group">
+    <h3>
+      {{_("Tor Hidden Service")}}
+      <div id="tor-toggle"
+           style="float: right; font-size: 0.6em; margin: 0; padding: 0;">
+        {%- set pref, val = 'tor', False %}
+        {%- set sel = {(val and True or False): ' checked'} %}
+        <span class="on-off" style="float: right; margin: 5px 0 0 0;">
+          <input type=radio name="{{ pref }}" class="toggle-off"
+                 value="None"{{ sel.get(False, '') }}>
+          <span class="checkbox">{{_("Off")}}</span>
+          <input type=radio name="{{ pref }}" class="toggle-on"
+                 value="{{ val }}"{{  sel.get(True,  '') }}>
+          <span class="checkbox">{{_("On")}}</span>
+        </span>
+      </div>
+    </h3>
+    <div class="explanation">
+      <p class="what">
+        <span class="icon icon-tor"></span>
+        {{_("Tor is completely free, and very secure.")}}
+        {{_("Relays and bandwidth are provided by a community of volunteers and organizations who care about anonymity and privacy online.")}}
+      </p>
+      <p class="risks">
+        <span class="icon icon-code"></span>
+        {{_("Tor-based access requires you use the <a {args} href='{tbb_url}'>Tor Browser</a> or <a {args} href='{orbot_url}'>Orbot</a> to access your Mailpile, and may be somewhat slower than other methods."
+            ).format(args='target=_blank',
+                     tbb_url='https://torproject.org/',
+                     orbot_url='https://guardianproject.info/apps/orbot/')}}
+        {{_("Tor .onion URLs are also rather hard to memorize and type.")}}
+      </p>
+    </div>
+    <div class="settings" style="line-height: 1.8em;">
+      <div id="tor-details" style="display: block; width: 100%;" class="hide">
+        <ul class="activation-steps" style="display: inline-block; margin: 1.2em 1em 0 0.5em">
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Connect to the Tor network")}}</span>
+            <span class="up hide">{{_("Connected to Tor")}}</span>
+          </li>
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Create a hidden service")}}</span>
+            <span class="up hide">{{_("Your URL")}}: <a id="tor-url"></a></span>
+          </li>
+          <li data-url="">
+            <span class="icon icon-arrow-right"></span>
+            <span class="down">{{_("Expose Mailpile over Tor")}}</span>
+            <span class="up tor-status hide">{{_("Remote Access over Tor is enabled")}}</span>
+          </li>
+        </ul>
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQMAAAAGz+OhAAAABlBMVEX///8AAABVwtN+AAABa0lEQVRIib2Wsa3DMAxEz3Ch0iNokcBezMA34MUUeBGNkJJFYP4jlQT5rUF9FUH8UjAi744Ggs+kqk+kQzFD73zQLZ5twJpTAZ/S/QED4WxXWYGxppIxPPTsxbIeKkOVngzCyVj/OjHvnyyVA/rb04vMZp7TUWXO6VsHgawdSkuLTf7rxDHWlR+VW05a0zm160WzJwtl90fmxcT7F8ywwiqWrAWpTO1ywWzaMuuaP05vZJPCdWaG5jDcC9Yr/yWY0QtUkrD0op/+dWD8utjdOPBP3UjGu+le5WbapbMZHfGMuqIHqV0ZlDNv/yWaqZoI6PPWv7llyXW2V+rU7GBqnZh46ML2ytKWG+cE71U020DtYmTAVh9+26GhzE+25bZo26Tx7JXj/Dzb7gHimccdqF36o1C77/eNq8x3MhmYG+/+9WGjgmuUkardGEWlZ3aLuNaC2eYxe2jLple2BzOfuYx8QVILphnx7B/OL8sR+Wi7ROtDAAAAAElFTkSuQmCC"
+             id="tor-qrcode" class="hide"
+             style="width: 6em; float: left; margin: 0.5em 5px;">
+        <br clear="both"><span class="right" style="margin: 0 1em">
+          [ <a id='tor-edit' href="#">edit</a> ]
+        </span>
+      </div>
+    </div>
+    <br clear="both">
+  </div>
+
+  <a name="lan"></a><div class="setting-group">
+    <h3>
+      {{_("Direct TCP/IP")}}
+      <div id="lan-toggle"
+           style="float: right; font-size: 0.6em; margin: 0; padding: 0;">
+        {%- set pref, val = 'allinterfaces', False %}
+        {%- set sel = {(val and True or False): ' checked'} %}
+        <span class="on-off" style="float: right">
+          <input type=radio name="{{ pref }}" class="toggle-off"
+                 value="None"{{ sel.get(False, '') }}>
+          <span class="checkbox">{{_("Off")}}</span>
+          <input type=radio name="{{ pref }}" class="toggle-on"
+                 value="{{ val }}"{{  sel.get(True,  '') }}>
+          <span class="checkbox">{{_("On")}}</span>
+        </span>
+      </div>
+    </h3>
+    <div class="explanation">
+      <p class="what">
+        <span class="icon icon-star"></span>
+        {{_("Direct TCP/IP access to your Mailpile is useful on a local network (LAN), such as home WiFi or within a workplace.")}}
+        {{_("When correctly configured, this is the most efficient (fastest) solution.")}}
+      </p>
+      <p class="risks">
+        <span class="icon icon-settings"></span>
+        {{_("Whether your Mailpile can be accessed from afar will depend on your router and firewall configurations.")}}
+        {{_("Direct TCP/IP access may expose your Mailpile to port-scans or worms and is only advisable if you are sure you understand the security implications.")}}
+      </p>
+    </div>
+    <div class="settings">
+      <div id="lan-details" class="hide"
+           style="line-height: 1.8em; margin-left: 1em; font-size: 0.9em;">
+      </div>
+    </div>
+    <br clear="both">
+  </div>
  </form>
 </div>
+
 <script language="javascript">
-  $('#settings-form').on('submit', function() {
+  var spinners = {};
+  function _working(which, step, speed) {
+    var $step = $('#' + which + '-details ul.activation-steps li').eq(step);
+    var $icon = $step.find('span.icon');
+    $.each(['down', 'right', 'up', 'left'], function(i, d) {
+      setTimeout(function() {
+        $icon.attr('class', 'icon');
+        $icon.addClass('icon-arrow-' + d);
+      }, i * (speed/4));
+    });
+    spinners[which] = setTimeout(function() {_working(which, step, speed);}, speed);
+  }
+  function _config_modal(which) {
+    var modal_template_html = $('#template-' + which + '-settings').html();
+    var modal = Mailpile.unsafe_template(modal_template_html);
+    Mailpile.UI.show_modal(modal({}));
+  }
+  function _toggle_details(which, how) {
+    if ($('#' + which + '-toggle input.toggle-on').is(':checked')) {
+      $('#' + which + '-details').slideDown(how);
+      // If there are activation steps, toggle the first one.
+    }
+    else {
+      $('#' + which + '-details').hide();
+      if (spinners[which]) clearTimeout(spinners[which]);
+    }
+  }
+  function _disable(which) {
+    $('#' + which + '-toggle input.toggle-off').click();
+  }
+  function _register_hooks(which) {
+    $('#' + which + '-toggle input').change(function(ev) {
+      if ($('#' + which + '-toggle input.toggle-on').val() == 'False') {
+        // FIXME: _disable(which);
+        if ($('#' + which + '-toggle input.toggle-on').is(':checked')) {
+          _config_modal(which);
+        }
+      }
+      _toggle_details(which);
+    });
+    $('#' + which + '-edit').click(function(ev) {
+      _config_modal(which);
+      return false;
+    });
+  }
+
+  $.each(['pagekite', 'tor', 'lan'], function(i, which) {
+    _register_hooks(which);
+    _toggle_details(which);
   });
+  _working('pagekite', 0, 500);
+  setTimeout(function() {
+    if (spinners['pagekite']) clearTimeout(spinners['pagekite']);
+    $('#pagekite-qrcode, #tor-qrcode').show();
+    $('#pagekite-url').attr('href', 'https://pagekite.net').html('dog-whistle-ferret.my-mailpile.is'); 
+    $('#pagekite-relay').html('127.0.0.1'); 
+    $('#tor-url').attr('href', 'https://pagekite.net').html('abacabacabacabacabacaba.onion'); 
+    $('.activation-steps span.icon').attr('class', 'icon icon-checkmark');
+    $('.activation-steps span.down').hide();
+    $('.activation-steps span.up').show();
+  }, 10000);
 </script>
+
+<div id="template-pagekite-settings" style="display: none">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close button-info" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">PageKite settings</h4>
+      </div>
+      <br>
+      <br>
+    </div>
+  </div>
+</div>
+
+<div id="template-tor-settings" style="display: none">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close button-info" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">Tor Hidden Service settings</h4>
+      </div>
+      <br>
+      <br>
+    </div>
+  </div>
+</div>
+
+<div id="template-lan-settings" style="display: none">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close button-info" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">LAN/WAN settings</h4>
+      </div>
+      <br>
+      <br>
+    </div>
+  </div>
+</div>
 {% endblock %}

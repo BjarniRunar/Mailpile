@@ -188,4 +188,4 @@ class RemoteAccessManager(threading.Thread):
             raw.quit(join=join)
 
     def run(self):
-        print 'FIXME: STARTED RemoteAccessManager'
+        print('FIXME: STARTED RemoteAccessManager')
