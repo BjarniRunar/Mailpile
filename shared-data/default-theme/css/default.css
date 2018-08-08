@@ -7024,6 +7024,7 @@ div.notification-bubble span.action {
   font-weight: normal;
   font-style: italic;
 }
+.form-search .assist-search,
 .form-search .clear-search {
   position: absolute;
   right: 50px;
@@ -7031,8 +7032,12 @@ div.notification-bubble span.action {
   cursor: pointer;
   color: #cccccc;
 }
+.form-search .assist-search:hover,
 .form-search .clear-search:hover {
   color: #b3b3b3;
+}
+.form-search .assist-search {
+  right: 70px;
 }
 .form-search button {
   overflow: visible;
