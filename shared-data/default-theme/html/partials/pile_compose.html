@@ -2,10 +2,10 @@
 {%- set editing_strings = editing_strings or {'to_aids': [], 'cc_aids': [], 'bcc_aids': []} %}
 {%- set editing_addresses = [] %}
 {%- set profiles = profiles or mailpile('profiles').result %}
+<tr class="pile-message pile-message-{{mid}} pile-composer full-message result">
 <form id="form-compose-{{mid}}" class="form-compose clearfix has-mid" data-mid="{{mid}}">
 {{ csrf_field|safe }}
-<tr class="pile-message pile-message-{{mid}} pile-composer full-message result">
-  <td class="{% if '-' not in mid %}draggable{% endif %}"></td>
+  <td class="{% if '-' in mid %}un{% endif %}draggable"></td>
   <td class="message-nav">
   {% if '-' not in mid %}
     <a class="compose-message-trash" title="{{_("Move Draft to Trash")}}"
@@ -13,7 +13,7 @@
     <br>
   {% endif %}
   </td>
-  <td class="from">
+  <td class="from people">
     <div class="compose-headers message-details">
       {%- for field, name in (('to', _("To")),
                               ('cc', _("Cc")),
@@ -32,9 +32,7 @@
              data-autosave_msg="{{_("autosaving...")}}"
              data-autosave_error_msg="{{_("error autosaving")}}"></label>
     </div>
-  </td>
-  <td class="crypto-and-tags">
-    {# FIXME: List tags, add ability to add tags while composing #}
+    {# FIXME: List tags, add ability to add tags while composing? #}
   </td>
   <td class="subject">
     <div class="thread-reply" id="message-{{mid}}">
@@ -196,13 +194,13 @@
     </div>
   </td>
   <td class="date"></td>
-  <td  class="checkbox">
+  <td class="checkbox">
   {% if '-' not in mid %}
     <input type="checkbox" name="mid" value="{{mid}}">
   {% endif %}
   </td>
-</tr>
 </form>
+</tr>
 <script>
 /*
   $(document).ready(function() {

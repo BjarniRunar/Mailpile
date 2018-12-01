@@ -8321,6 +8321,9 @@ tr.modal-tag-picker-item td.checkbox {
   margin-right: 5px;
   cursor: pointer;
 }
+#pile-results td.undraggable {
+  width: 12px;
+}
 #pile-results td.draggable {
   width: 12px;
   cursor: move;

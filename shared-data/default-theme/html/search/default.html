@@ -11,8 +11,7 @@
   {%- for qv in state.query_args.q -%}
     {% if '@' in qv|list %}{% do with_top_composer.append(tid) %}{% endif %}
   {%- endfor %}
-  {%- set with_top_composer = (False and profiles.profiles and with_top_composer) %}
-  {# FIXME! ^^ false #}
+  {%- set with_top_composer = (profiles.profiles and with_top_composer) %}
 
   <span class="page-title-data" style="display: none;">
   {%- if result.search_tag_ids %}
