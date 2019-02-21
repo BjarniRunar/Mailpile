@@ -73,6 +73,11 @@
             ><span class="link-icon icon-donate"></span></a>
         </li>
         {%- endif %}
+        <li class="{% if command == "help" %} navigation-on{% endif %} mobile-pt-hide">
+          <a class="auto-modal" data-flags="" data-icon="icon-help"
+             href="{{ U("/help/") }}" title="{{_("Help")}}"
+            ><span class="link-icon icon-help"></span></a>
+        </li>
         <li class="{% if command == "settings" %} navigation-on{% endif %} mobile-pt-hide">
           <a href="{{ U("/settings/") }}" title="{{_("Settings and Tools")}}"
             ><span class="link-icon icon-settings"></span></a>
@@ -83,7 +88,8 @@
         </li>
 {#
         <li class="">
-          <a class="secure" href="#" title="{{_("Secure Mode")}}"><span class="link-icon icon-lock-open"></span></a>
+          <a class="secure" href="#" title="{{_("Secure Mode")}}"
+            ><span class="link-icon icon-lock-open"></span></a>
         </li>
 #}
       </ul>

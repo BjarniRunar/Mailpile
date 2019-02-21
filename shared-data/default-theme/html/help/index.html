@@ -1,6 +1,6 @@
-{% extends "layouts/full.html" %}
-{% block title %}{{_("Help")}}{% endblock %}
-{% block content %}
+{%- extends "layouts/" + render_mode + ".html" %}
+{%- block title %}{{_("Help")}}{% endblock %}
+{%- block content %}
 
 <div class="content-normal">
 
@@ -25,4 +25,4 @@
 
 </div>
 
-{% endblock %}
+{%- endblock %}
