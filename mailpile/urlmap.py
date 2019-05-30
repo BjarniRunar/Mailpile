@@ -334,7 +334,7 @@ class UrlMap:
     }
 
     def map(self, request, method, path, query_data, post_data,
-            authenticate=False):
+            authenticate=False, auth_callback=None):
         """
         Convert an HTTP request to a list of mailpile.command objects.
 
@@ -408,6 +408,7 @@ class UrlMap:
                             user_session = None
                 if not user_session or not user_session.auth:
                     for c in commands:
+                        # FIXME: Allow more fine-grained authentication!
                         if (c.HTTP_AUTH_REQUIRED is True or
                                (c.HTTP_AUTH_REQUIRED == 'Maybe' and
                                 self.session.config.prefs.gpg_recipient)):
@@ -415,9 +416,13 @@ class UrlMap:
                                 raise AccessError()
                             self.redirect_to_auth_or_setup(method, path,
                                                            query_data)
+                if auth_callback is not None:
+                    auth_callback(user_session)
                 return commands
         else:
             def auth(commands, user_session):
+                if auth_callback is not None:
+                    auth_callback(user_session)
                 return commands
 
         # Check the API first.

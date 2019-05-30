@@ -362,9 +362,13 @@ class HttpRequestHandler(SimpleXMLRPCRequestHandler):
         query_data = parse_qs(query)
         opath = path = unquote(path)
 
-        # HTTP is stateless, so we create a new session for each request.
-        self.session, config = self.server.session, self.server.session.config
+        config = self.server.session.config
         server_session = self.server.session
+
+        # HTTP is stateless, so we create a new session for each request.
+        self.session = session = Session(config)
+        session.ui = HttpUserInteraction(self, config,
+                                         log_parent=server_session.ui)
 
         # Debugging...
         if 'httpdata' in config.sys.debug:
@@ -386,9 +390,6 @@ class HttpRequestHandler(SimpleXMLRPCRequestHandler):
                 return self.send_file(config, path[len(static):],
                                       suppress_body=suppress_body)
 
-        self.session = session = Session(config)
-        session.ui = HttpUserInteraction(self, config,
-                                         log_parent=server_session.ui)
         if 'context' in post_data:
             session.load_context(post_data['context'][0])
         elif 'context' in query_data:
@@ -434,12 +435,15 @@ class HttpRequestHandler(SimpleXMLRPCRequestHandler):
             self.server.secret, http_session, token)
 
         try:
+            thread_context_push(_html_variables=session.ui.html_variables)
             try:
+                def save_user_session(user_session):
+                    thread_context_set('_user_session', user_session, create=True)
                 need_auth = not (mailpile.util.TESTING or
                                  session.config.sys.http_no_auth)
                 commands = UrlMap(session).map(
                     self, method, path, query_data, post_data,
-                    authenticate=need_auth)
+                    authenticate=need_auth, auth_callback=save_user_session)
             except UsageError:
                 if (not path.endswith('/') and
                         not session.config.sys.debug and
@@ -518,6 +522,7 @@ class HttpRequestHandler(SimpleXMLRPCRequestHandler):
             return None
 
         finally:
+            thread_context_pop()
             session.ui.report_marks(
                 details=('timing' in session.config.sys.debug))
             session.ui.finish_command(mark_name)

@@ -272,11 +272,39 @@ def safe_assert(check, *args):
 def thread_context_push(**kwargs):
     if not hasattr(THREAD_LOCAL, 'context'):
         THREAD_LOCAL.context = []
+
+    # This allows certain attributes to persist from one context to the
+    # next, unless they are explicitly changed.
+    if THREAD_LOCAL.context:
+        ctx = THREAD_LOCAL.context[-1]
+        for key in ctx:
+            # Attributes starting with _ get inherited.
+            if key[:1] == '_':
+                if key not in kwargs:
+                    kwargs[key] = ctx[key]
+            # Attributes starting with ! cannot be overridden.
+            elif key[:1] == '!':
+                kwargs[key] = ctx[key]
+
     THREAD_LOCAL.context.append(kwargs)
 
 
 def thread_context():
     return THREAD_LOCAL.context if hasattr(THREAD_LOCAL, 'context') else []
+
+
+def thread_context_get(var, default=None):
+    if hasattr(THREAD_LOCAL, 'context') and THREAD_LOCAL.context:
+        return THREAD_LOCAL.context[-1].get(var, default)
+    else:
+        return default
+
+
+def thread_context_set(var, value, create=False):
+    if hasattr(THREAD_LOCAL, 'context') and THREAD_LOCAL.context:
+        THREAD_LOCAL.context[-1][var] = value
+    elif create:
+        thread_context_push(**{var: value})
 
 
 def thread_context_pop():

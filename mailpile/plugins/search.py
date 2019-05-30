@@ -818,6 +818,10 @@ class Search(Command):
             except ValueError:
                 raise UsageError(_('Weird starting point: %s') % spoint)
 
+        user_session = thread_context_get('_user_session')
+        if user_session:
+             print('SHOULD SCOPE FOR USER %s' % user_session.auth)
+
         session.order = session.order or session.config.prefs.default_order
         self._start = start
         self._num = num
