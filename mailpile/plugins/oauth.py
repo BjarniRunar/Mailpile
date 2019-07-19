@@ -59,9 +59,9 @@ class OAuth2(TestableWebbable):
         'GMail': {
             'protocol': 'Google',
             'server_re': '.*\\.(google|gmail)\\.com$',
-            'client_id': ('174733765695-1dnhaq06gt61tg432t0d6jlt76nng2t1'
+            'client_id': ('1053238937066-ghkiua7imcgu6f1ofm0df37ckn1mfdet'
                           '.apps.googleusercontent.com'),
-            'client_secret': 'vbUxR2Dvqb1c-nI2-X_7NvCu',
+            'client_secret': 'fj6-yB8KhUia6SDXfgKfzMUs',
             'redirect_re': '^http://localhost[:/]',
             'token_url': ('https://www.googleapis.com/oauth2/v4/token'),
             'oauth_url': ('https://accounts.google.com/o/oauth2/v2/auth'
