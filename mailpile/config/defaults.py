@@ -170,6 +170,7 @@ CONFIG_RULES = {
 #       'backup_to_web':  X(_('Backup settings and keys to mobile web app'),
 #                                                                  bool, True),
 #       'backup_to_email':X(_('Backup settings and keys to e-mail'),  str, ''),
+        'password_reset':  (_('E-mail of password reset assistant'), str,  ''),
         'rescan_command':  (_('Command run before rescanning'), str,       ''),
         'default_email':   (_('Default outgoing e-mail address'), 'email', ''),
         'default_route':   (_('Default outgoing mail route'), str, ''),

@@ -352,6 +352,15 @@
       <br style="margin-bottom: 0.75em;">
       {%- endif %}
 
+      <input name="prefs.password_reset" type="radio" value=""
+             {%- if not config.prefs.password_reset %} checked{% endif %}>
+      <span class="checkbox">{{_("Off")}}</span>
+      <input name="prefs.password_reset" type="radio" value="password-reset@mailpile.is"
+            {%- if config.prefs.password_reset %} checked{% endif %}>
+      <span class="checkbox">{{_("On")}}</span>
+      &nbsp; - &nbsp; {{_("Allow mailpile.is to assist with password recovery.")}}
+      <br style="margin-bottom: 0.75em;">
+
 {# FIXME: Make this work!
       <input name="prefs.backup_to_web" type="radio" value="false"
              {%- if not config.prefs.backup_to_web %} checked{% endif %}>
