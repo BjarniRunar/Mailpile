@@ -28,7 +28,7 @@ __all__ = [
     'setup_magic', 'oauth', 'exporters', 'plugins', 'motd', 'backups',
     'vcard_carddav', 'vcard_gnupg', 'vcard_gravatar', 'vcard_libravatar',
     'vcard_mork', 'html_magic', 'migrate', 'smtp_server', 'crypto_policy',
-    'keylookup', 'webterminal', 'crypto_autocrypt'
+    'keylookup', 'webterminal', 'crypto_autocrypt', 'search_autodict'
 ]
 PLUGINS = __all__
 
@@ -428,10 +428,10 @@ class PluginManager(object):
         # Register search keyword extractors
         s = self
         for which, reg in (
-            ('meta', s.register_meta_kw_extractor),
-            ('text', s.register_text_kw_extractor),
-            ('data', s.register_data_kw_extractor)
-        ):
+                ('meta', s.register_meta_kw_extractor),
+                ('text', s.register_text_kw_extractor),
+                ('data', s.register_data_kw_extractor),
+                ('filter', s.register_keyword_filter)):
             for item in manifest_path('keyword_extractors', which):
                 reg('%s.%s' % (full_name, item),
                     self._get_class(full_name, item))
@@ -591,6 +591,7 @@ class PluginManager(object):
     DATA_KW_EXTRACTORS = {}
     TEXT_KW_EXTRACTORS = {}
     META_KW_EXTRACTORS = {}
+    KEYWORD_FILTERS = {}
 
     def register_data_kw_extractor(self, term, function):
         self._compat_check()
@@ -604,6 +605,10 @@ class PluginManager(object):
         self._compat_check()
         return self._rhtf(self.META_KW_EXTRACTORS, term, function)
 
+    def register_keyword_filter(self, term, function):
+        self._compat_check()
+        return self._rhtf(self.KEYWORD_FILTERS, term, function)
+
     def get_data_kw_extractors(self):
         self._compat_check(strict=False)
         return self.DATA_KW_EXTRACTORS.values()
@@ -615,6 +620,10 @@ class PluginManager(object):
     def get_meta_kw_extractors(self):
         self._compat_check(strict=False)
         return self.META_KW_EXTRACTORS.values()
+
+    def get_keyword_filters(self):
+        self._compat_check(strict=False)
+        return self.KEYWORD_FILTERS.values()
 
 
     ##[ Pluggable search terms ]##############################################

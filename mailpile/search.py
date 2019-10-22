@@ -1498,6 +1498,9 @@ class MailIndex(BaseIndex):
         else:
             body_info['snippet'] = self.clean_snippet(snippet_html[:1024])
 
+        for kwf in _plugins.get_keyword_filters():
+            keywords = kwf(self, keywords, body_info=body_info)
+
         return (set(keywords) - STOPLIST), body_info
 
     # FIXME: Here it would be nice to recognize more boilerplate junk in

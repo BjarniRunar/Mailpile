@@ -181,7 +181,8 @@
     "keyword_extractors": {
         "meta": [],
         "text": [],
-        "data": []
+        "data": [],
+        "filter": []
     },
     "search_terms": [
     ],
