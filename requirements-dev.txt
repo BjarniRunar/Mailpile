@@ -12,6 +12,7 @@ pycrypto
 pyDNS
 PySocks
 pgpdump
+pgp_passtool
 pillow
 pbr
 fasteners

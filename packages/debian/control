@@ -43,6 +43,7 @@ Depends: ${misc:Depends},
          python-lxml,
          python-markupsafe,
          python-pgpdump,
+         python-pgp-passtool,
          python-pil,
          python-icalendar,
          python-socksipychain
