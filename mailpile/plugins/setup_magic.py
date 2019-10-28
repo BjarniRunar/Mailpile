@@ -24,7 +24,7 @@ from mailpile.plugins.contacts import ListProfiles
 from mailpile.plugins.migrate import Migrate
 from mailpile.plugins.motd import MOTD_URL_TOR_ONLY_NO_MARS
 from mailpile.plugins.setup_magic_ispdb import STATIC_ISPDB
-from mailpile.plugins.tags import AddTag
+from mailpile.plugins.tags import CreateTagFromSpec
 from mailpile.commands import Command
 from mailpile.crypto.gpgi import SignatureInfo, EncryptionInfo
 from mailpile.eventlog import Event
@@ -48,16 +48,16 @@ class SetupMagic(Command):
     LOG_PROGRESS = True
     COMMAND_SECURITY = security.CC_CHANGE_CONFIG
 
-    TAGS = {
-        'New': {
+    APPLICATION_TAGS = [
+        ('New', {
             'type': 'unread',
             'label': False,
             'display': 'invisible',
             'icon': 'icon-new',
             'label_color': '03-gray-dark',
             'name': _('New'),
-        },
-        'Inbox': {
+        }),
+        ('Inbox', {
             'type': 'inbox',
             'display': 'priority',
             'display_order': 2,
@@ -65,8 +65,8 @@ class SetupMagic(Command):
             'label_color': '06-blue',
             'notify_new': True,
             'name': _('Inbox'),
-        },
-        'Blank': {
+        }),
+        ('Blank', {
             'type': 'blank',
             'flag_editable': True,
             'flag_msg_only': True,
@@ -74,8 +74,8 @@ class SetupMagic(Command):
             'display': 'invisible',
             'template': 'outgoing',
             'name': _('Blank'),
-        },
-        'Drafts': {
+        }),
+        ('Drafts', {
             'type': 'drafts',
             'flag_editable': True,
             'flag_msg_only': True,
@@ -86,8 +86,8 @@ class SetupMagic(Command):
             'icon': 'icon-compose',
             'label_color': '03-gray-dark',
             'name': _('Drafts'),
-        },
-        'Outbox': {
+        }),
+        ('Outbox', {
             'type': 'outbox',
             'flag_msg_only': True,
             'flag_allow_add': False,
@@ -97,8 +97,8 @@ class SetupMagic(Command):
             'icon': 'icon-outbox',
             'label_color': '06-blue',
             'name': _('Outbox'),
-        },
-        'Sent': {
+        }),
+        ('Sent', {
             'type': 'sent',
             'flag_msg_only': True,
             'display': 'priority',
@@ -107,8 +107,8 @@ class SetupMagic(Command):
             'icon': 'icon-sent',
             'label_color': '03-gray-dark',
             'name': _('Sent'),
-        },
-        'Spam': {
+        }),
+        ('Spam', {
             'slug': 'spam',
             'type': 'spam',
             'flag_hides': True,
@@ -120,13 +120,14 @@ class SetupMagic(Command):
             'auto_after': 30,
             'auto_action': '-spam +trash',
             'auto_tag': 'fancy'
-        },
-        'Ham': {
+        }),
+        ('Ham', {
+            'slug': 'ham',
             'type': 'ham',
             'display': 'invisible',
             'name': _('Ham'),
-        },
-        'Trash': {
+        }),
+        ('Trash', {
             'slug': 'trash',
             'type': 'trash',
             'flag_hides': True,
@@ -138,19 +139,8 @@ class SetupMagic(Command):
             'auto_after': 91,
             'auto_action': '!delete',
             'name': _('Trash'),
-        },
-        # These are magical tags that perform searches and show
-        # messages in contextual views.
-# FIXME: This is a good idea, but not quite ready to ship.
-#       'Conversations': {
-#           'type': 'replied',
-#           'icon': 'icon-forum',
-#           'label': False,
-#           'label_color': '05-blue-light',
-#           'name': _('Conversations'),
-#           'display_order': 1001,
-#       },
-        'Photos': {
+        }),
+        ('Photos', {
             'type': 'search',
             'icon': 'icon-photos',
             'label': False,
@@ -159,8 +149,8 @@ class SetupMagic(Command):
             'name': _('Photos'),
             'display_order': 1002,
             '_filters': ['att:jpg is:personal'],
-        },
-        'Documents': {
+        }),
+        ('Documents', {
             'type': 'search',
             'icon': 'icon-document',
             'label': False,
@@ -169,12 +159,12 @@ class SetupMagic(Command):
             'name': _('Documents'),
             'display_order': 1003,
             '_filters': ['has:document is:personal'],
-        },
+        }),
         # These are placeholder tags that perform searches - these are
         # generally to be avoided as they break the user expectation of
         # how tags behave. A normal tag + filter is almost always the
         # right choice!
-        'All Mail': {
+        ('All Mail', {
             'type': 'search',
             'icon': 'icon-logo',
             'label': False,
@@ -182,22 +172,7 @@ class SetupMagic(Command):
             'search_terms': 'all:mail',
             'name': _('All Mail'),
             'display_order': 1100,
-        },
-        # These are internal tags, used for tracking user actions on
-        # messages, as input for machine learning algorithms. These get
-        # automatically added, and may be automatically removed as well
-        # to keep the working sets reasonably small.
-        'mp_rpl': {'type': 'replied', 'label': False, 'display': 'invisible',
-                   'flag_msg_only': True},
-        'mp_fwd': {'type': 'fwded', 'label': False, 'display': 'invisible',
-                   'flag_msg_only': True},
-        'mp_tag': {'type': 'tagged', 'label': False, 'display': 'invisible',
-                   'flag_msg_only': True},
-        'mp_read': {'type': 'read', 'label': False, 'display': 'invisible',
-                   'flag_msg_only': True},
-        'mp_ham': {'type': 'ham', 'label': False, 'display': 'invisible',
-                   'flag_msg_only': True},
-    }
+        })]
 
     def basic_app_config(self, session,
                          save_and_update_workers=True,
@@ -209,13 +184,13 @@ class SetupMagic(Command):
 
         # Create standard tags and filters
         created = []
-        for t, tag_settings in self.TAGS.iteritems():
+        for t, tag_settings in self.APPLICATION_TAGS:
             tag_settings = copy.copy(tag_settings)
 
             tid = session.config.get_tag_id(t.replace(' ', '-'))
             if not tid:
-                AddTag(session, arg=[t]).run(save=False)
-                tid = session.config.get_tag_id(t)
+                tid = CreateTagFromSpec(
+                    session.config, tag_settings, _name=t, save=False)._key
                 created.append(t)
             if not tid:
                 session.ui.notify(_('Failed to create tag: %s') % t)
@@ -246,19 +221,19 @@ class SetupMagic(Command):
                     del tag_info[k]
             tag_info.update(tag_settings)
 
+        crypto_tag_attrs = {
+            'type': 'attribute',
+            'flag_msg_only': True,
+            'display': 'invisible',
+            'label': False}
         for stype, statuses in (('sig', SignatureInfo.STATUSES),
                                 ('enc', EncryptionInfo.STATUSES)):
             for status in statuses:
                 tagname = 'mp_%s-%s' % (stype, status)
                 if not session.config.get_tag_id(tagname):
-                    AddTag(session, arg=[tagname]).run(save=False)
+                    CreateTagFromSpec(
+                        session.config, crypto_tag_attrs, _name=tagname, save=False)
                     created.append(tagname)
-                session.config.get_tag(tagname).update({
-                    'type': 'attribute',
-                    'flag_msg_only': True,
-                    'display': 'invisible',
-                    'label': False,
-                })
 
         if 'New' in created:
             session.ui.notify(_('Created default tags'))

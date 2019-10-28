@@ -30,7 +30,7 @@ _plugins.register_config_section('tags', ["Tags", {
     'type': ['Tag type', [
         'tag', 'group', 'attribute', 'unread', 'inbox', 'search',
         # Maybe TODO: 'folder', 'shadow',
-        'profile', 'mailbox',                         # Accounts, Mailboxes
+        'profile', 'mailbox', 'never_delete',         # Accounts, Mailboxes
         'drafts', 'blank', 'outbox', 'sent',          # composing and sending
         'replied', 'fwded', 'tagged', 'read', 'ham',  # behavior tracking tags
         'trash', 'spam'                               # junk mail tags
@@ -71,6 +71,23 @@ _plugins.register_config_section('filters', ["Filters", {
     'type': ['Filter type', FILTER_TYPES, FILTER_TYPES[0]],
     'primary_tag': ['Tag dedicated to this filter', 'str', ''],
 }, {}])
+
+
+# These are internal tags, used for various Mailpile behaviours. They are
+# auto-created as necessary. Use and creation (and the key to this dict) are
+# based on tag type, so the user can still rename and reconfigure everything
+# else if they so choose.
+INTERNAL_TAGS = {
+    'never_delete': {'name': 'mp_never_delete',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'read':    {'name': 'mp_read',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'fwded':   {'name': 'mp_fwd',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'replied': {'name': 'mp_rpl',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True},
+    'tagged':  {'name': 'mp_tag',
+                'label': False, 'display': 'invisible', 'flag_msg_only': True}}
 
 
 def GetFilters(cfg, filter_on=None, types=FILTER_TYPES[:1]):
@@ -119,6 +136,25 @@ def FilterDelete(cfg, *filter_ids):
             del filters[lastid]
 
 
+def CreateTagFromSpec(cfg, tag_settings, _name=None, _type=None, save=True):
+    tag_settings = copy.copy(tag_settings)
+    if _type is not None:
+        tag_settings['type'] = _type
+    if _name is not None:
+        tag_settings['name'] = _name
+    for key in [k for k in tag_settings.keys() if k[:1] == '_']:
+        del tag_settings[key]
+
+    # This may throw at least KeyError or IndexError on failure
+    command = AddTag(cfg.background, arg=[tag_settings['name']])
+    tag_cfg = cfg.tags[command.run(save=False).result['added'][0]['tid']]
+    tag_cfg.update(tag_settings)
+    if save:
+        command._background_save(config=True, index=False)
+
+    return tag_cfg
+
+
 def GetTags(cfg, tn=None, default=None, **kwargs):
     results = []
     tv = None
@@ -159,22 +195,30 @@ def GetTags(cfg, tn=None, default=None, **kwargs):
                     results.append([t._key for t in tv
                                     if (unicode(t[kw]).lower() in want)])
 
-    if (tn or kwargs) and not results:
-        return default
+    tags = set(cfg.tags.keys())
+    for r in results:
+        tags &= set(r)  # Only return tags that match all criteria
+    tags = [cfg.tags[t] for t in tags]
+
+    if (tn or kwargs) and not tags:
+        try:
+            ttype = kwargs['type']
+            tag = CreateTagFromSpec(cfg, INTERNAL_TAGS[ttype], _type=ttype)
+            if tag is not None:
+                return [tag]
+        except (KeyError, IndexError, ValueError, AttributeError):
+            pass
+        return [] if (default is None) else default
     else:
-        tags = set(cfg.tags.keys())
-        for r in results:
-            tags &= set(r)
-        tags = [cfg.tags[t] for t in tags]
         return tags
 
 
 def GetTag(cfg, tn, default=None):
-    return (GetTags(cfg, tn, default=None) or [default])[0]
+    return (GetTags(cfg, tn) or [default])[0]
 
 
 def GetTagID(cfg, tn):
-    tags = GetTags(cfg, tn=tn, default=[None])
+    tags = GetTags(cfg, tn=tn, default=[])
     return tags and (len(tags) == 1) and tags[0]._key or None
 
 
