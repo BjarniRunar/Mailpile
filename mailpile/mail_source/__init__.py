@@ -13,12 +13,18 @@ from mailpile.eventlog import Event
 from mailpile.i18n import gettext as _
 from mailpile.i18n import ngettext as _n
 from mailpile.mailboxes import *
-from mailpile.mailutils import FormatMbxId
+from mailpile.mailutils import FormatMbxId, MBX_ID_LEN
 from mailpile.util import *
 from mailpile.vfs import vfs, FilePath, MailpileVfsBase
 
 
 __all__ = ['local', 'imap', 'pop3']
+
+
+# These are header markers that identify messages we never delete
+# automatically. The user can still request they get deleted by manually
+# removing them from the mp_never-delete tag.
+NEVER_DELETE_RULES = []
 
 
 class BaseMailSource(threading.Thread):
@@ -796,13 +802,32 @@ class BaseMailSource(threading.Thread):
         policy = self._policy(mbx_cfg)
         count = 0
 
+        never_delete_tag = config.get_tags(type='never-delete')[0]._key
+        never_delete = []
         def maybe_delete_from_server(loc, src):
             # Delete from source, if that's our policy.
             if policy != 'move':
                 return
 
+            # Figure out which messages to never delete. Requires checking the
+            # built-in never-delete tag, and then extracting the keys.
+            index = config.index
+            session = config.background
+            for ip in index.search(session, ['in:%s' % never_delete_tag]).as_set():
+                msg_info = index.get_msg_at_idx_pos(ip)
+                for msg_ptr in msg_info[index.MSG_PTRS].split(','):
+                    try:
+                        _mbx_key, msg_key = src.decode_msg_ptr(msg_ptr)
+                        if mbx_key == _mbx_key:
+                            never_delete.append(msg_key)
+                    except ValueError:
+                        pass
+
             # Messages we have downloaded are candidates for deletion.
-            downloaded = list(set(src.keys()) & set(loc.source_map.keys()))
+            downloaded = [
+                k for k in list(set(src.keys()) & set(loc.source_map.keys()))
+                    if k not in never_delete
+                        and loc.source_map.get(k, k) not in never_delete]
             downloaded.sort(key=self._msg_key_order)
 
             # If prefs.deletion_ratio is less than 1.0, leave the most
@@ -897,6 +922,17 @@ class BaseMailSource(threading.Thread):
                 progress['copied_bytes'] += len(data)
                 progress['uncopied'] -= 1
                 count += 1
+
+                # This has to happen here, since we're deferring the parsing
+                # and indexing of the message until later, but deletion might
+                # happen right away.
+                headers_lower = '\n' + (
+                    data[:15000].replace('\r', '').split('\n\n', 1)[0]
+                    ).lower()
+                for marker in NEVER_DELETE_RULES:
+                    if marker in headers_lower:
+                        mkws.append('%s:in' % never_delete_tag)
+                        never_delete.append(key)
 
                 # This forks off a scan job to index the message
                 config.index.scan_one_message(

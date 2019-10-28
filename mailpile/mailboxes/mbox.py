@@ -281,8 +281,11 @@ class MailpileMailbox(mailbox.mbox):
             return '%s%s:%s:%s' % (
                 mboxid, b36(msg_start), b36(msg_size), msg_cs)
 
+    def decode_msg_ptr(self, msg_ptr):
+        return msg_ptr[:MBX_ID_LEN], msg_ptr[MBX_ID_LEN:]
+
     def _parse_ptr(self, msg_ptr):
-        parts = msg_ptr[MBX_ID_LEN:].split(':')
+        parts = self.decode_msg_ptr(msg_ptr)[1].split(':')
         start = int(parts[0], 36)
         length = int(parts[1], 36)
         if len(parts) > 2:

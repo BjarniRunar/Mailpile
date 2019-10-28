@@ -87,7 +87,8 @@ IMAP_TOKEN = re.compile('("[^"]*"'
 # These are mailbox names we avoid downloading (by default)
 BLACKLISTED_MAILBOXES = (
     'drafts',
-    'chats',
+    'chats',     # FIXME: Remove these when we know how to chat!
+    'deltachat', # FIXME: Remove these when we know how to chat!
     '[gmail]/all mail',
     '[gmail]/important',
     '[gmail]/starred',
@@ -539,11 +540,14 @@ class SharedImapMailbox(Mailbox):
     def get_msg_ptr(self, mboxid, key):
         return '%s%s' % (mboxid, quote(key))
 
+    def decode_msg_ptr(self, msg_ptr):
+        return msg_ptr[:MBX_ID_LEN], unquote(msg_ptr[MBX_ID_LEN:])
+
     def get_file_by_ptr(self, msg_ptr):
-        return self.get_file(unquote(msg_ptr[MBX_ID_LEN:]))
+        return self.get_file(self.decode_msg_ptr(msg_ptr)[1])
 
     def remove_by_ptr(self, msg_ptr):
-        return self.remove(unquote(msg_ptr[MBX_ID_LEN:]))
+        return self.remove(self.decode_msg_ptr(msg_ptr)[1])
 
     def get_msg_size(self, key):
         return long(self.get_info(key).get('RFC822.SIZE', 0))

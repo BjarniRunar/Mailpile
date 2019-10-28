@@ -1543,6 +1543,11 @@ class MailIndex(BaseIndex):
                 keywords |= set(['%s:in' % tag._key for tag in
                                  self.config.get_tags(type='inbox')])
 
+        # Message-dependent tagging may also be communicated directly by
+        # msg_metadata_kws. This is used by the never-delete functionality.
+        keywords |= set([
+            k for k in msg_metadata_kws if k.split(':')[-1] in ('tag', 'in')])
+
         # Mark as updated (modified/touched) today and on msg_ts
         keywords.add('%x:u' % (time.time() / (24 * 3600)))
         if msg_ts:

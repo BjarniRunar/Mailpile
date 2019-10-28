@@ -30,7 +30,7 @@ _plugins.register_config_section('tags', ["Tags", {
     'type': ['Tag type', [
         'tag', 'group', 'attribute', 'unread', 'inbox', 'search',
         # Maybe TODO: 'folder', 'shadow',
-        'profile', 'mailbox', 'never_delete',         # Accounts, Mailboxes
+        'profile', 'mailbox', 'never-delete',         # Accounts, Mailboxes
         'drafts', 'blank', 'outbox', 'sent',          # composing and sending
         'replied', 'fwded', 'tagged', 'read', 'ham',  # behavior tracking tags
         'trash', 'spam'                               # junk mail tags
@@ -78,7 +78,7 @@ _plugins.register_config_section('filters', ["Filters", {
 # based on tag type, so the user can still rename and reconfigure everything
 # else if they so choose.
 INTERNAL_TAGS = {
-    'never_delete': {'name': 'mp_never_delete',
+    'never-delete': {'name': 'mp_never-delete',
                 'label': False, 'display': 'invisible', 'flag_msg_only': True},
     'read':    {'name': 'mp_read',
                 'label': False, 'display': 'invisible', 'flag_msg_only': True},

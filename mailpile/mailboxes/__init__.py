@@ -159,12 +159,15 @@ def UnorderedPicklable(parent, editable=False):
             with self._lock:
                 return parent.get_file(self, *args, **kwargs)
 
+        def decode_msg_ptr(self, msg_ptr):
+            return msg_ptr[:MBX_ID_LEN], unquote(msg_ptr[MBX_ID_LEN:])
+
         def get_file_by_ptr(self, msg_ptr):
-            return self.get_file(unquote(msg_ptr[MBX_ID_LEN:]))
+            return self.get_file(self.decode_msg_ptr(msg_ptr)[1])
 
         def remove_by_ptr(self, msg_ptr):
             self._last_updated = time.time()
-            return self.remove(unquote(msg_ptr[MBX_ID_LEN:]))
+            return self.remove(self.decode_msg_ptr(msg_ptr)[1])
 
         def get_msg_size(self, toc_id):
             with self._lock:
