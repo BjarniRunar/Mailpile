@@ -634,6 +634,10 @@ else:
     register_crypto_key_lookup_handler(AutocryptKeyLookupHandler)
     register_crypto_policy('autocrypt', autocrypt_policy_checker)
 
+    # Configure mail sources to never kill the Autocrypt Setup Message
+    import mailpile.mail_source as msrc
+    msrc.NEVER_DELETE_RULES.append('\nautocrypt-setup-message:')
+
     # Note: we perform our transformations BEFORE the GnuPG transformations
     # (prio 500), so the memory hole transformation can take care of hiding
     # the Autocrypt-Gossip headers.
